@@ -1,0 +1,2 @@
+class PresenterNotDefined(Exception):
+    pass
