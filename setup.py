@@ -13,7 +13,8 @@ setup(
     author='TransparenCEE',
     author_email='ppeczek@epf.org.pl',
     url='https://github.com/TransparenCEE/moonsheep/',
-    license='GNU AGPL',
+    license='AGPL-3.0',
+    include_package_data=True,
     install_requires=[
         'Django>=1.11',
     ]

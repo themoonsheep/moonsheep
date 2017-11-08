@@ -1,2 +1,3 @@
 include *.txt *.ini *.cfg *.rst
 recursive-include moonsheep *.ico *.png *.css *.gif *.jpg *.txt *.js *.html *.xml
+recursive-include moonsheep/templates *

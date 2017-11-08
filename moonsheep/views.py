@@ -6,10 +6,12 @@ import urllib.request
 from django.conf import settings
 from django.views.generic import TemplateView
 
-from .exceptions import PresenterNotDefined
+from .exceptions import PresenterNotDefined, TaskSourceNotDefined
 
 
 class TaskView(TemplateView):
+    template_name = 'task.html'
+
     # TODO: update docstring
     def get_context_data(self, **kwargs):
         """
@@ -26,7 +28,8 @@ class TaskView(TemplateView):
         task = self._get_task()
         context.update({
             'task': task,
-            'presenter': self.get_presenter(task.url)
+            'presenter_template': self.get_presenter_template(task.url),
+            'url': task.url
         })
         return context
 
@@ -38,11 +41,14 @@ class TaskView(TemplateView):
         :rtype: AbstractTask
         :return: user's implementation of AbstractTask object
         """
-        if settings.MOONSHEEP_TASK_SOURCE == 'random':
-            task = self.get_random_mocked_task()
-        elif settings.MOONSHEEP_TASK_SOURCE == 'pybossa':
-            task = self.get_pybossa_task()
-        else:
+        try:
+            if settings.MOONSHEEP_TASK_SOURCE == 'random':
+                task = self.get_random_mocked_task()
+            elif settings.MOONSHEEP_TASK_SOURCE == 'pybossa':
+                task = self.get_pybossa_task()
+            else:
+                raise TaskSourceNotDefined()
+        except AttributeError:
             task = self.get_random_mocked_task()
         parts = task['type'].split('.')
         url = task['url']
@@ -88,7 +94,7 @@ class TaskView(TemplateView):
         result = json.loads(r.read().decode(r.info().get_param('charset') or 'utf-8'))
         return result['info']
 
-    def get_presenter(self, url):
+    def get_presenter_template(self, url):
         """
         Returns presenter based on task data. Default presenter depends on the url MIME Type
         :return:
@@ -105,4 +111,4 @@ class TaskView(TemplateView):
         #     return "presenters.{0}".format(mimetype)
         # except:  # DoesNotExist:
         #     raise PresenterNotDefined
-        return 1
+        return 'presenters/pdf_presenter.html'
