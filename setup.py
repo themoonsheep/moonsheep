@@ -1,21 +1,42 @@
 import os
-from setuptools import setup
+from setuptools import find_packages, setup
 
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
+with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
+    README = readme.read()
 
 setup(
-    name='moonsheep',
+    name='django-moonsheep',
     version='0.1.0',
-    packages=['moonsheep'],
+    # packages=['moonsheep'],
+    packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        'moonsheep': ['templates/*.html', 'templates/**/*.html']
+    },
     description='digitization of public documents',
     long_description=README,
     author='TransparenCEE',
     author_email='ppeczek@epf.org.pl',
     url='https://github.com/TransparenCEE/moonsheep/',
+    download_url='',
     license='AGPL-3.0',
-    include_package_data=True,
     install_requires=[
         'Django>=1.11',
-    ]
+    ],
+    classifiers=[
+        'Environment :: Web Environment',
+        'Framework :: Django',
+        'Framework :: Django :: 1.11.7',  # replace "X.Y" as appropriate
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',  # example license
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        # Replace these appropriately if you are stuck on Python 2.
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+    ],
+    zip_safe=False,
 )

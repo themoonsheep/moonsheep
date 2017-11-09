@@ -59,14 +59,14 @@ class TaskView(TemplateView):
     def get_random_mocked_task(self):
         tasks = [
             {
-                "url": "https://epf.org.pl/pl/wp-content/themes/epf/images/logo-epanstwo.png",
+                "url": "http://sccg.sk/~cernekova/Benesova_Digital%20Image%20Processing%20Lecture%20Objects%20tracking%20&%20motion%20detection.pdf",
                 "party": "",
                 "type": "opora.tasks.FindTableTask",
                 "page": "",
                 "record_id": ""
             },
             {
-                "url": "https://epf.org.pl/pl/wp-content/themes/epf/images/logo-epanstwo.png",
+                "url": "http://www.cs.stanford.edu/~amirz/index_files/PED12_v2.pdf",
                 "party": "1",
                 "type": "opora.tasks.GetTransactionIdsTask",
                 "page": "1",
