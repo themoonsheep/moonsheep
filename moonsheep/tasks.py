@@ -23,6 +23,9 @@ class AbstractTask(object):
     def __init__(self, url, **kwargs):
         self.url = url
         self.kwargs = kwargs
+        # TODO: if type = pybossa_task
+        self.project_id = kwargs['project_id']
+        self.id = kwargs['id']
 
     # TODO to implement verify_data let's copy how django forms do it: django.forms.forms.BaseForm#full_clean
     def verify_data(self):

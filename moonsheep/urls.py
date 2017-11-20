@@ -15,10 +15,9 @@ Including another URLconf
 """
 from django.conf.urls import url
 
-from .views import TaskView
+from .views import WebhookTaskRunView
 
 
 urlpatterns = [
-    # url(r'^admin/', admin.site.urls),
-    url(r'^$', TaskView.as_view())
+    url(r'^webhooks/task-run/$', WebhookTaskRunView.as_view())
 ]
