@@ -4,3 +4,7 @@ class PresenterNotDefined(Exception):
 
 class TaskSourceNotDefined(Exception):
     pass
+
+
+class NoTasksLeft(Exception):
+    pass

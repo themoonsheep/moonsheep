@@ -1,18 +1,34 @@
-import json
+import datetime
 import importlib
+import json
+import pbclient
 import random
-import urllib.request, urllib.parse
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView
 
-from .exceptions import PresenterNotDefined, TaskSourceNotDefined
+from .exceptions import (
+    PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft
+)
 from .forms import DummyForm
 from .moonsheep_settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
-    PYBOSSA_NEW_TASK_URL, PYBOSSA_TASK_RUN_URL
+    PYBOSSA_PROJECT_ID
 )
+
+
+class Encoder(json.JSONEncoder):
+    """Create an encoder subclassing JSON.encoder.
+    Make this encoder aware of our classes (e.g. datetime.datetime objects)
+    """
+    def default(self, obj):
+        if isinstance(obj, datetime.date):
+            return obj.isoformat()
+        else:
+            return json.JSONEncoder.default(self, obj)
 
 
 class TaskView(FormView):
@@ -24,8 +40,8 @@ class TaskView(FormView):
         self.presenter = self.get_presenter(self.task.url)
         super(TaskView, self).__init__(*args, **kwargs)
 
-    # TODO: update docstring
     def get_context_data(self, **kwargs):
+        # TODO: update docstring
         """
         Returns form for a this task
 
@@ -45,21 +61,19 @@ class TaskView(FormView):
 
     def get_form_class(self):
         try:
-            return self._get_task().task_form
+            return self.task.task_form
         except AttributeError:
             # TODO: check if template exists, if not raise exception
             return DummyForm
 
-
     def form_valid(self, form):
-        # TODO: send data to pybosssa here
         self._send_task(form)
         return super(TaskView, self).form_valid(form)
 
     def form_invalid(self, form):
         print('invalid form')
-        print(form)
-        return super(TaskView, self).form_valid(form)
+        print(form.errors)
+        return super(TaskView, self).form_invalid(form)
 
     def get_presenter(self, url):
         """
@@ -96,13 +110,20 @@ class TaskView(FormView):
         elif TASK_SOURCE == PYBOSSA_SOURCE:
             task = self.get_pybossa_task()
         else:
-            raise TaskSourceNotDefined()
+            raise TaskSourceNotDefined
 
+        if not task:
+            raise NoTasksLeft
+
+        return self.task_class_from_string(task['info']['type'], **task)
+
+    @staticmethod
+    def task_class_from_string(task_type, **kwargs):
         # task['type'] -> 'app.task.MyTaskClass'
-        parts = task['info']['type'].split('.')
+        parts = task_type.split('.')
         # task url is presenter http source
         module_path, class_name = importlib.import_module('.'.join(parts[:-1])), parts[-1]
-        return getattr(module_path, class_name)(task['info']['url'], **task)
+        return getattr(module_path, class_name)(kwargs['info']['url'], **kwargs)
 
     def get_random_mocked_task(self):
         tasks = [
@@ -143,9 +164,7 @@ class TaskView(FormView):
         :rtype: dict
         :return: task structure
         """
-        url = PYBOSSA_NEW_TASK_URL
-        r = urllib.request.urlopen(url)
-        return json.loads(r.read().decode(r.info().get_param('charset') or 'utf-8'))
+        return pbclient.get_new_task(PYBOSSA_PROJECT_ID)
 
     def _send_task(self, form):
         """
@@ -157,32 +176,56 @@ class TaskView(FormView):
             raise TaskSourceNotDefined()
 
     def send_pybossa_task(self, form):
-        post_data = [
-            ('task_id', self.task.id),
-            ('project_id', self.task.project_id),
-            ('info', form.cleaned_data)
-        ]
-        url = PYBOSSA_TASK_RUN_URL
-        data = urllib.parse.urlencode(json.dumps(post_data)).encode("utf-8")
-        req = urllib.request.Request(url, data=data)
-        # req.add_header('Content-Type', 'application/json')
-        with urllib.request.urlopen(req) as f:
-            resp = f.read()
+        # data = urllib.parse.urlencode(form.cleaned_data)
+        data = form.cleaned_data
+        user_ip = self.request.META.get(
+            'HTTP_X_FORWARDED_FOR', self.request.META.get('REMOTE_ADDR')
+        ).split(',')[-1].strip()
+        return pbclient.create_taskrun(PYBOSSA_PROJECT_ID, self.task.id, data, user_ip)
+
+
+# def verify(data):
+#     taskruns = pbclient.get_task_taskruns(data['project_id'], data['task_id'])
+#     print(taskruns)
+#     for
 
 
 class WebhookTaskRunView(View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return super(WebhookTaskRunView, self).dispatch(request, *args, **kwargs)
+
     def get(self, request):
         # empty response so pybossa can set webhook to this endpoint
         return HttpResponse()
 
     def post(self, request):
-        # give a response for request:
-        # {
-        #   'fired_at':,
-        #   'project_short_name': 'project-slug',
-        #   'project_id': 1,
-        #   'task_id': 1,
-        #   'result_id': 1,
-        #   'event': 'task_completed'
-        # }
-        print(request)
+        """
+        give a response for request:
+        {
+          'fired_at':,
+          'project_short_name': 'project-slug',
+          'project_id': 1,
+          'task_id': 1,
+          'result_id': 1,
+          'event': 'task_completed'
+        }
+        :param request:
+        :return:
+        """
+        webhook_data = json.loads(request.read().decode('utf-8'))
+        if webhook_data['event'] == 'task_completed':
+            project_id = webhook_data['project_id']
+            task_id = webhook_data['task_id']
+
+            task_data = pbclient.get_task(project_id=project_id, task_id=task_id)
+            task = TaskView.task_class_from_string(task_data[0]['info']['type'], **task_data[0])
+
+            taskruns = pbclient.find_taskruns(project_id=project_id, task_id=task_id)
+            taskruns_list = [taskrun.data['info'] for taskrun in taskruns]
+
+            # AbstractTask
+            task.verify_and_save(taskruns_list)
+
+            return HttpResponse("ok")
+        return HttpResponseBadRequest()
