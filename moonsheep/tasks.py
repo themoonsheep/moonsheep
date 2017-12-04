@@ -103,7 +103,3 @@ class AbstractTask(object):
 #
 # task.verified_data # aka self.cleaned_data = {}
 # task.save_verified_data() # saves to the model
-
-
-### MOONSHEEP ABOVE
-### OPORA BELOW

@@ -115,47 +115,44 @@ class TaskView(FormView):
         if not task:
             raise NoTasksLeft
 
-        return self.task_class_from_string(task['info']['type'], **task)
+        return self.create_task_instance(task['info']['type'], **task)
+
 
     @staticmethod
-    def task_class_from_string(task_type, **kwargs):
-        # task['type'] -> 'app.task.MyTaskClass'
+    def create_task_instance(task_type, **kwargs):
+        """
+        Create relevant task instance.
+
+        :param task_type: full reference to task class, ie. 'app.task.MyTaskClass'
+        :param kwargs: task parameters
+        :return: Task object
+        """
+
         parts = task_type.split('.')
-        # task url is presenter http source
-        module_path, class_name = importlib.import_module('.'.join(parts[:-1])), parts[-1]
-        return getattr(module_path, class_name)(kwargs['info']['url'], **kwargs)
+
+        module_name, class_name = '.'.join(parts[:-1]), parts[-1]
+        try:
+            module_path = importlib.import_module(module_name)
+            klass = getattr(module_path, class_name)
+        except (ImportError, AttributeError) as e:
+            raise Exception("Couldn't import task {}".format(task_type)) from e
+
+        return klass(kwargs['info']['url'], **kwargs)
 
     def get_random_mocked_task(self):
-        tasks = [
-            {
-                'info': {
-                    "url": "http://sccg.sk/~cernekova/Benesova_Digital%20Image%20Processing%20Lecture%20Objects%20tracking%20&%20motion%20detection.pdf",
-                    "party": "",
-                    "type": "opora.tasks.FindTableTask",
-                    "page": "",
-                    "record_id": ""
-                }
-            },
-            {
-                'info': {
-                    "url": "http://www.cs.stanford.edu/~amirz/index_files/PED12_v2.pdf",
-                    "party": "1",
-                    "type": "opora.tasks.GetTransactionIdsTask",
-                    "page": "1",
-                    "record_id": ""
-                }
-            },
-            {
-                'info': {
-                    "url": "https://epf.org.pl/pl/wp-content/themes/epf/images/logo-epanstwo.png",
-                    "party": "1",
-                    "type": "opora.tasks.GetTransactionTask",
-                    "page": "1",
-                    "record_id": "1"
-                }
+        # Make sure that tasks are imported before this code is run, ie. in your project urls.py
+        from .tasks import AbstractTask
+        defined_tasks = [klass.__module__ + '.' + klass.__qualname__ for klass in vars()['AbstractTask'].__subclasses__()]
+        task_type = random.choice(defined_tasks)
+
+        # TODO allow task implementers to override mocked task creation
+
+        return {
+            'info': {
+                "url": "http://sccg.sk/~cernekova/Benesova_Digital%20Image%20Processing%20Lecture%20Objects%20tracking%20&%20motion%20detection.pdf",
+                "type": task_type,
             }
-        ]
-        return random.choice(tasks)
+        }
 
     def get_pybossa_task(self):
         """
@@ -219,7 +216,7 @@ class WebhookTaskRunView(View):
             task_id = webhook_data['task_id']
 
             task_data = pbclient.get_task(project_id=project_id, task_id=task_id)
-            task = TaskView.task_class_from_string(task_data[0]['info']['type'], **task_data[0])
+            task = TaskView.create_task_instance(task_data[0]['info']['type'], **task_data[0])
 
             taskruns = pbclient.find_taskruns(project_id=project_id, task_id=task_id)
             taskruns_list = [taskrun.data['info'] for taskrun in taskruns]
