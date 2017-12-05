@@ -17,6 +17,38 @@ class AbstractTask(object):
         self.id = kwargs.get('id')
         self.verified = False
 
+    def get_presenter(self, url):
+        """
+        Choosing how to render document to transcribe.
+
+        The default behaviour is to check:
+        1. Known url templates for YouTube, Vimeo, etc.
+        2. Url file extension
+        3. Url file mimetype
+
+        :return: {
+            'template': 'presenters/pdf_presenter.html',
+            'url': url
+        }
+        """
+
+        # 3. mimetype
+        # with urllib.request.urlopen(url) as response:
+        #     info = response.info()
+        #     print(info.get_content_type())  # -> text/html
+        #     print(info.get_content_maintype())  # -> text
+        #     print(info.get_content_subtype())  # -> html
+
+        # try:
+        #     return "presenters.{0}".format(mimetype)
+        # except:  # DoesNotExist:
+        #     raise PresenterNotDefined
+
+        return {
+            'template': 'presenters/pdf_presenter.html',
+            'url': url
+        }
+
     def verify_and_save(self, taskruns_list):
         confidence, crosschecked = self.cross_check(taskruns_list)
         self.verified = confidence > self.MIN_CONFIDENCE

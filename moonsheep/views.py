@@ -37,7 +37,6 @@ class TaskView(FormView):
     def __init__(self, *args, **kwargs):
         # TODO: don't get task for each creation
         self.task = self._get_task()
-        self.presenter = self.get_presenter(self.task.url)
         super(TaskView, self).__init__(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -54,7 +53,7 @@ class TaskView(FormView):
         """
         context = super(TaskView, self).get_context_data(**kwargs)
         context.update({
-            'presenter': self.presenter,
+            'presenter': self.task.get_presenter(self.task.url),
             'task': self.task,
         })
         return context
@@ -74,28 +73,6 @@ class TaskView(FormView):
         print('invalid form')
         print(form.errors)
         return super(TaskView, self).form_invalid(form)
-
-    def get_presenter(self, url):
-        """
-        Returns presenter based on task data. Default presenter depends on the url MIME Type
-        :return:
-        """
-
-        # TODO: opening file in order to check mimetype isn't very efficient...
-        # with urllib.request.urlopen(url) as response:
-        #     info = response.info()
-        #     print(info.get_content_type())  # -> text/html
-        #     print(info.get_content_maintype())  # -> text
-        #     print(info.get_content_subtype())  # -> html
-
-        # try:
-        #     return "presenters.{0}".format(mimetype)
-        # except:  # DoesNotExist:
-        #     raise PresenterNotDefined
-        return {
-            'template': 'presenters/pdf_presenter.html',
-            'url': url
-        }
 
     def _get_task(self):
         """
