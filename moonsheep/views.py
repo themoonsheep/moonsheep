@@ -53,7 +53,7 @@ class TaskView(FormView):
         """
         context = super(TaskView, self).get_context_data(**kwargs)
         context.update({
-            'presenter': self.task.get_presenter(self.task.url),
+            'presenter': self.task.get_presenter(),
             'task': self.task,
         })
         return context
