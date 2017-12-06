@@ -1,8 +1,9 @@
 import collections
+import importlib
 import inspect
 import pbclient
 
-from moonsheep.verifiers import EqualsVerifier
+from .verifiers import EqualsVerifier
 
 
 class AbstractTask(object):
@@ -37,21 +38,35 @@ class AbstractTask(object):
         }
 
     def verify_and_save(self, taskruns_list):
+        """
+        This method is called by webhook with required amount of taskruns per task.
+        It crosschecks users' answers (the taskruns) and if they match -
+        their confidence is greater than MIN_CONFIDENCE, then data is verified and can be saved to database
+        otherwise... I don't know yet (will be invoked again or called "dirty data" - to be checked by moderator)
+        :type taskruns_list: list
+        :param taskruns_list: list containing taskrun dictionaries
+        :rtype: bool
+        :return: True if verified otherwise False
+        """
         confidence, crosschecked = self.cross_check(taskruns_list)
         self.verified = confidence > self.MIN_CONFIDENCE
         if self.verified:
             # save verified data
             self.save_verified_data(crosschecked)
             # create new tasks
+            print(crosschecked)
             self.after_save(crosschecked)
             # pbclient.delete_task(self.id)
+            return True
         else:
-            raise NotImplementedError
+            # TODO: do something here
+            return False
 
-    # TODO to implement verify_data let's copy how django forms do it: django.forms.forms.BaseForm#full_clean
     def cross_check(self, taskruns_list):
+        # TODO: to implement verify_data let's copy how django forms do it: django.forms.forms.BaseForm#full_clean
         """
-        Iterates through all taskrun fields and invokes verify_field of AbstractTask.
+        Verification method for all form fields in regard to answers of other users' (other taskruns).
+        It iterates through all taskrun fields and invokes verify_field of AbstractTask.
         If no verify_field method or verifier then calls EqualsVerifier.
 
         :param taskruns_list: list containing taskrun dictionaries
@@ -94,15 +109,57 @@ class AbstractTask(object):
 
     def after_save(self, verified_data):
         """
-        To implement in derived classes if needed
-        :return:
+        This method is invoked right after save_verified_data.
+        If user wants to do some actions afterwards, i.e. create new task, it should be done in
+        method after_save in derived class.
+        :type verified_data: dict
+        :param verified_data: dictionary containing verified and saved fields from form
         """
-        pass
+        raise NotImplementedError
 
-    def create_new_task(self, task, **info):
-        info['task'] = ".".join([task.__module__, task.__name__])
-        pbclient.create_task(self.project_id, info, self.N_ANSWERS)
+    def create_new_task(self, task, info):
+        """
+        Helper method for creating new task.
+        It has proposed structure
+        :param task:
+        :param info:
+        :return: created task
+        """
+        # TODO: 'type' is now reserved key in task params
+        # TODO: maybe we should reserve '_type' ?
+        info['type'] = ".".join([task.__module__, task.__name__])
+        return pbclient.create_task(self.project_id, info, self.N_ANSWERS)
 
+    @staticmethod
+    def create_task_instance(task_type, **kwargs):
+        """
+        Create relevant task instance.
+
+        :param task_type: full reference to task class, ie. 'app.task.MyTaskClass'
+        :param kwargs: task parameters
+        :return: Task object
+        """
+
+        parts = task_type.split('.')
+
+        module_name, class_name = '.'.join(parts[:-1]), parts[-1]
+        try:
+            module_path = importlib.import_module(module_name)
+            klass = getattr(module_path, class_name)
+        except (ImportError, AttributeError) as e:
+            raise Exception("Couldn't import task {}".format(task_type)) from e
+
+        return klass(kwargs['info']['url'], **kwargs)
+
+    @staticmethod
+    def verify_task(project_id, task_id):
+        task_data = pbclient.get_task(project_id=project_id, task_id=task_id)
+        task = AbstractTask.create_task_instance(task_data[0]['info']['type'], **task_data[0])
+
+        taskruns = pbclient.find_taskruns(project_id=project_id, task_id=task_id)
+        taskruns_list = [taskrun.data['info'] for taskrun in taskruns]
+
+        task.verify_and_save(taskruns_list)
 
 # # Flow 2. Serve form for a given task  (to implement in Moonsheep Controller)
 # task_type = 'find_table'
