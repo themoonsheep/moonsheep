@@ -116,21 +116,37 @@ class TaskView(FormView):
         return AbstractTask.create_task_instance(task['info']['type'], **task)
 
     __mocked_task_counter = 0
+
     def get_random_mocked_task(self):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         defined_tasks = [
             klass.__module__ + '.' + klass.__qualname__ for klass in globals()['AbstractTask'].__subclasses__()
         ]
-        task_type = random.choice(defined_tasks)
 
-        # TODO allow task implementers to override mocked task creation
+        if not defined_tasks:
+            raise NotImplementedError(
+                "You haven't defined any tasks or forgot to add in urls.py folllowing line: from .tasks import *"
+                + "# Keep it to make Moonsheep aware of defined tasks")
 
-        return {
+        # Rotate tasks one after another
+        TaskView.__mocked_task_counter += 1
+        if TaskView.__mocked_task_counter >= len(defined_tasks):
+            TaskView.__mocked_task_counter = 0
+        task_type = defined_tasks[TaskView.__mocked_task_counter]
+
+        default_params = {
             'info': {
                 "url": "http://sccg.sk/~cernekova/Benesova_Digital%20Image%20Processing%20Lecture%20Objects%20tracking%20&%20motion%20detection.pdf",
                 "type": task_type,
             }
         }
+
+        task = AbstractTask.create_task_instance(task_type, **default_params)
+        # Check if developers don't want to test out tasks with mocked data
+        if hasattr(task, 'create_mocked_task') and callable(task, 'create_mocked_task'):
+            return task.create_mocked_task()
+        else:
+            return default_params
 
     def get_pybossa_task(self):
         """
