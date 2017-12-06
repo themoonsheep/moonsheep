@@ -1,5 +1,4 @@
 import datetime
-import importlib
 import json
 import pbclient
 import random
@@ -18,6 +17,7 @@ from .moonsheep_settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_PROJECT_ID
 )
+from .tasks import AbstractTask
 
 
 class Encoder(json.JSONEncoder):
@@ -113,35 +113,14 @@ class TaskView(FormView):
         if not task:
             raise NoTasksLeft
 
-        return self.create_task_instance(task['info']['type'], **task)
-
-
-    @staticmethod
-    def create_task_instance(task_type, **kwargs):
-        """
-        Create relevant task instance.
-
-        :param task_type: full reference to task class, ie. 'app.task.MyTaskClass'
-        :param kwargs: task parameters
-        :return: Task object
-        """
-
-        parts = task_type.split('.')
-
-        module_name, class_name = '.'.join(parts[:-1]), parts[-1]
-        try:
-            module_path = importlib.import_module(module_name)
-            klass = getattr(module_path, class_name)
-        except (ImportError, AttributeError) as e:
-            raise Exception("Couldn't import task {}".format(task_type)) from e
-
-        return klass(kwargs['info']['url'], **kwargs)
+        return AbstractTask.create_task_instance(task['info']['type'], **task)
 
     __mocked_task_counter = 0
     def get_random_mocked_task(self):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
-        from .tasks import AbstractTask
-        defined_tasks = [klass.__module__ + '.' + klass.__qualname__ for klass in vars()['AbstractTask'].__subclasses__()]
+        defined_tasks = [
+            klass.__module__ + '.' + klass.__qualname__ for klass in globals()['AbstractTask'].__subclasses__()
+        ]
         task_type = random.choice(defined_tasks)
 
         # TODO allow task implementers to override mocked task creation
@@ -180,12 +159,6 @@ class TaskView(FormView):
         return pbclient.create_taskrun(PYBOSSA_PROJECT_ID, self.task.id, data, user_ip)
 
 
-# def verify(data):
-#     taskruns = pbclient.get_task_taskruns(data['project_id'], data['task_id'])
-#     print(taskruns)
-#     for
-
-
 class WebhookTaskRunView(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
@@ -214,14 +187,7 @@ class WebhookTaskRunView(View):
             project_id = webhook_data['project_id']
             task_id = webhook_data['task_id']
 
-            task_data = pbclient.get_task(project_id=project_id, task_id=task_id)
-            task = TaskView.create_task_instance(task_data[0]['info']['type'], **task_data[0])
-
-            taskruns = pbclient.find_taskruns(project_id=project_id, task_id=task_id)
-            taskruns_list = [taskrun.data['info'] for taskrun in taskruns]
-
-            # AbstractTask
-            task.verify_and_save(taskruns_list)
+            AbstractTask.verify_task(project_id, task_id)
 
             return HttpResponse("ok")
         return HttpResponseBadRequest()
