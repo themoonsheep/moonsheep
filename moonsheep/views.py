@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView
 
 from .exceptions import (
-    PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft
+    PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskWithNoTemplateNorForm
 )
 from .forms import DummyForm
 from .moonsheep_settings import (
@@ -32,11 +32,26 @@ class Encoder(json.JSONEncoder):
 
 
 class TaskView(FormView):
-    template_name = 'task.html'
+    template_name = 'task.html' # TODO either we should have full template in Moonsheep or have that template in project_template
+    form_template_name = None
 
     def __init__(self, *args, **kwargs):
         # TODO: don't get task for each creation
         self.task = self._get_task()
+
+        # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
+        # By default it uses moonsheep/templates/task.html
+        if hasattr(self.task, 'task_template'):
+            self.template_name = self.task.task_template
+
+        if hasattr(self.task, 'task_form_template'):
+            self.form_template_name = self.task.task_form_template
+        if hasattr(self.task, 'task_form'):
+            self.form_class = self.task.task_form
+
+        if self.form_class is None and self.form_template_name is None:
+            raise TaskWithNoTemplateNorForm(self.task.__class__)
+
         super(TaskView, self).__init__(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -58,12 +73,18 @@ class TaskView(FormView):
         })
         return context
 
-    def get_form_class(self):
-        try:
-            return self.task.task_form
-        except AttributeError:
-            # TODO: check if template exists, if not raise exception
-            return DummyForm
+    def get_form(self, form_class=None):
+        """Return an instance of the form to be used in this view.
+
+        Overrides django.views.generic.edit.FormMixin to adapt for a case
+        when user hasn't defined form for a given task.
+        """
+        if form_class is None:
+            form_class = self.get_form_class()
+
+        if form_class is None:
+            return None
+        return form_class(**self.get_form_kwargs())
 
     def form_valid(self, form):
         self._send_task(form)
@@ -116,6 +137,7 @@ class TaskView(FormView):
 
         return klass(kwargs['info']['url'], **kwargs)
 
+    __mocked_task_counter = 0
     def get_random_mocked_task(self):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         from .tasks import AbstractTask

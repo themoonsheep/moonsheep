@@ -27,7 +27,8 @@ class AbstractTask(object):
 
         :return: {
             'template': 'presenters/pdf.html',
-            'url': url
+            'url': url,
+            'other_presenter_option': 'width: 110px'
         }
         """
 
