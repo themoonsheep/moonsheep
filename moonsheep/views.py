@@ -1,7 +1,7 @@
 import datetime
+import decimal
 import json
 import pbclient
-import random
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils.decorators import method_decorator
@@ -12,7 +12,6 @@ from django.views.generic import FormView
 from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskWithNoTemplateNorForm
 )
-from .forms import DummyForm
 from .moonsheep_settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_PROJECT_ID
@@ -27,12 +26,18 @@ class Encoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.date):
             return obj.isoformat()
+        elif isinstance(obj, decimal.Decimal):
+            # wanted a simple yield str(o) in the next line,
+            # but that would mean a yield on the line with super(...),
+            # which wouldn't work (see my comment below), so...
+            return (str(obj) for obj in [obj])
         else:
             return json.JSONEncoder.default(self, obj)
 
 
 class TaskView(FormView):
-    template_name = 'task.html' # TODO either we should have full template in Moonsheep or have that template in project_template
+    # TODO either we should have full template in Moonsheep or have that template in project_template
+    template_name = 'task.html'
     form_template_name = None
 
     def __init__(self, *args, **kwargs):
@@ -176,6 +181,7 @@ class TaskView(FormView):
 
 
 class WebhookTaskRunView(View):
+    # TODO: instead of csrf, IP white list
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super(WebhookTaskRunView, self).dispatch(request, *args, **kwargs)

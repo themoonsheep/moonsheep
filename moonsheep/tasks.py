@@ -10,9 +10,8 @@ class AbstractTask(object):
     MIN_CONFIDENCE = 0.5
     N_ANSWERS = 1
 
-    def __init__(self, url, **kwargs):
-        self.url = url
-        self.kwargs = kwargs
+    def __init__(self, **kwargs):
+        self.url = kwargs.get('url')
         # TODO: if type == "pybossa_task"
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
@@ -55,7 +54,6 @@ class AbstractTask(object):
             # save verified data
             self.save_verified_data(crosschecked)
             # create new tasks
-            print(crosschecked)
             self.after_save(crosschecked)
             # pbclient.delete_task(self.id)
             return True
@@ -116,7 +114,7 @@ class AbstractTask(object):
         :type verified_data: dict
         :param verified_data: dictionary containing verified and saved fields from form
         """
-        raise NotImplementedError
+        pass
 
     def create_new_task(self, task, info):
         """
