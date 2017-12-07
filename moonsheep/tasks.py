@@ -11,7 +11,7 @@ class AbstractTask(object):
     N_ANSWERS = 1
 
     def __init__(self, **kwargs):
-        self.url = kwargs.get('url')
+        self.url = kwargs.get('info').get('url')
         # TODO: if type == "pybossa_task"
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
@@ -148,7 +148,7 @@ class AbstractTask(object):
         except (ImportError, AttributeError) as e:
             raise Exception("Couldn't import task {}".format(task_type)) from e
 
-        return klass(kwargs['info']['url'], **kwargs)
+        return klass(**kwargs)
 
     @staticmethod
     def verify_task(project_id, task_id):
