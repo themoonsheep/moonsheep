@@ -12,7 +12,12 @@ class AbstractTask(object):
 
     def __init__(self, **kwargs):
         self.url = kwargs.get('info').get('url')
-        # TODO: if type == "pybossa_task"
+        # to override templates
+        if 'task_form' in kwargs.get('info'):
+            self.task_form = AbstractTask.klass_from_name(kwargs.get('info').get('task_form'))
+        if 'task_form_template' in kwargs.get('info'):
+            self.task_form_template = kwargs.get('info').get('task_form_template')
+        # if type == "pybossa_task"
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
         self.verified = False
@@ -130,6 +135,17 @@ class AbstractTask(object):
         return pbclient.create_task(self.project_id, info, self.N_ANSWERS)
 
     @staticmethod
+    def klass_from_name(name):
+        parts = name.split('.')
+        module_name, class_name = '.'.join(parts[:-1]), parts[-1]
+        try:
+            module_path = importlib.import_module(module_name)
+            klass = getattr(module_path, class_name)
+        except (ImportError, AttributeError) as e:
+            raise Exception("Couldn't import class {}".format(name)) from e
+        return klass
+
+    @staticmethod
     def create_task_instance(task_type, **kwargs):
         """
         Create relevant task instance.
@@ -139,15 +155,7 @@ class AbstractTask(object):
         :return: Task object
         """
 
-        parts = task_type.split('.')
-
-        module_name, class_name = '.'.join(parts[:-1]), parts[-1]
-        try:
-            module_path = importlib.import_module(module_name)
-            klass = getattr(module_path, class_name)
-        except (ImportError, AttributeError) as e:
-            raise Exception("Couldn't import task {}".format(task_type)) from e
-
+        klass = AbstractTask.klass_from_name(task_type)
         return klass(**kwargs)
 
     @staticmethod
