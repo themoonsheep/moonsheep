@@ -122,6 +122,7 @@ class TaskView(FormView):
         defined_tasks = [
             klass.__module__ + '.' + klass.__qualname__ for klass in globals()['AbstractTask'].__subclasses__()
         ]
+        defined_tasks.sort()
 
         if not defined_tasks:
             raise NotImplementedError(
@@ -143,8 +144,8 @@ class TaskView(FormView):
 
         task = AbstractTask.create_task_instance(task_type, **default_params)
         # Check if developers don't want to test out tasks with mocked data
-        if hasattr(task, 'create_mocked_task') and callable(task, 'create_mocked_task'):
-            return task.create_mocked_task()
+        if hasattr(task, 'create_mocked_task') and callable(task.create_mocked_task):
+            return task.create_mocked_task(default_params)
         else:
             return default_params
 

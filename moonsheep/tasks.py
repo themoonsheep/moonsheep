@@ -27,7 +27,7 @@ class AbstractTask(object):
         2. Url file extension
 
         :return: {
-            'template': 'presenters/pdf.html',
+            'template': 'presenters/fancy.html',
             'url': url,
             'other_presenter_option': 'width: 110px'
         }

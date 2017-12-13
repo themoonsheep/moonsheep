@@ -1,6 +1,8 @@
 <embed id="pdf-presenter"
        src="{{ presenter.url }}"
        alt="pdf"
-       width="100%"
-       height="100%"
-       pluginspage="http://www.adobe.com/products/acrobat/readstep2.html">
+       width="{{ presenter.width|default:"100%" }}"
+       height="{{ presenter.height|default:"100%" }}"
+       pluginspage="http://www.adobe.com/products/acrobat/readstep2.html"/>
+
+<!-- <object type="application/pdf" data="{{ presenter.url }}" width="100%" height="727px"></object>'; --->
