@@ -64,5 +64,4 @@ class PresenterTests(UnitTestCase):
         with self.assertRaises(PresenterNotDefined):
             t.get_presenter()
 
-
 # TODO test error handling for Tasks with no form and no template
