@@ -13,7 +13,8 @@ TASK_SOURCE = getattr(settings, 'MOONSHEEP_TASK_SOURCE', DEFAULT_SOURCE)
 """
 If set Moonsheep won't communicate with PyBossa and will:
 1. serve random mocked tasks
-2. send form submissions straight to the verification  
+2. send form submissions straight to the verification
+   won't test cross-checking as there is going to be only one entry, but will allow to test the whole flow  
 """
 DEVELOPMENT_MODE = getattr(settings, 'MOONSHEEP_DEVELOPMENT_MODE', False)
 

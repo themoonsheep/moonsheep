@@ -205,9 +205,10 @@ class TaskView(FormView):
             # In development let's take a shortcut straight to verification
             taskruns_list = [data]
             self.task.verify_and_save(taskruns_list)
+            return
 
         if TASK_SOURCE == PYBOSSA_SOURCE:
-            return self.send_pybossa_task(data)
+            self.send_pybossa_task(data)
         else:
             raise TaskSourceNotDefined()
 
@@ -265,6 +266,14 @@ def unpack_post(post: QueryDict) -> dict:
     - objects, ie. obj[field1]=val1 obj[field2]=val2
     - multiple rows of several fields, ie. row[0][field1], row[1][field1]
     - hierarchily nested multiples, ie. row[0][entry_id], row[0][entry_options][]
+
+    Possible TODO, Django does it like this: (we could use Django parsing)
+    <input type="hidden" name="acquisition_titles-TOTAL_FORMS" value="3" id="id_acquisition_titles-TOTAL_FORMS" autocomplete="off">
+    <input type="hidden" name="acquisition_titles-INITIAL_FORMS" value="0" id="id_acquisition_titles-INITIAL_FORMS">
+    <input type="hidden" name="acquisition_titles-MIN_NUM_FORMS" value="0" id="id_acquisition_titles-MIN_NUM_FORMS">
+    <input type="hidden" name="acquisition_titles-MAX_NUM_FORMS" value="1000" id="id_acquisition_titles-MAX_NUM_FORMS" autocomplete="off">
+    <input type="hidden" name="acquisition_titles-1-id" id="id_acquisition_titles-1-id">
+    <input type="hidden" name="acquisition_titles-1-property" id="id_acquisition_titles-1-property">
 
     :param QueryDict post: POST data
     :return: dictionary representing the object passed in POST
