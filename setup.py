@@ -22,7 +22,8 @@ setup(
     license='AGPL-3.0',
     install_requires=[
         'Django>=1.11',
-        'pybossa-client'
+        'pybossa-client',
+        'dpath~=1.4'
     ],
     classifiers=[
         'Environment :: Web Environment',

@@ -87,7 +87,12 @@ class AbstractTask(object):
 
         for k, v in taskruns_dict.items():
             verifier = getattr(self, "verify_" + k, EqualsVerifier)
-            value, confidence = verifier()(v) if inspect.isclass(verifier) else verifier(v)
+
+            # Create instance of verifier class if needed
+            if inspect.isclass(verifier):
+                verifier = verifier()
+
+            value, confidence = verifier(v)
             results_dict[k] = value
             confidences_list.append(confidence)
 
@@ -109,7 +114,8 @@ class AbstractTask(object):
         :param verified_data:
         :return:
         """
-        raise NotImplementedError
+        raise NotImplementedError("Task {}.{} should define save_verified_data method"
+                                  .format(self.__class__.__module__, self.__class__.__name__))
 
     def after_save(self, verified_data):
         """

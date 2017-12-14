@@ -1,9 +1,12 @@
 import datetime
 import decimal
+import dpath.util
 import json
 import pbclient
+import re
 
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.http.request import QueryDict
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -14,7 +17,7 @@ from .exceptions import (
 )
 from .moonsheep_settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
-    PYBOSSA_PROJECT_ID
+    PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
 )
 from .tasks import AbstractTask
 
@@ -78,6 +81,10 @@ class TaskView(FormView):
         })
         return context
 
+    # =====================
+    # Override FormView to adapt for a case when user hasn't defined form for a given task
+    # and to process form in our own manner
+
     def get_form(self, form_class=None):
         """Return an instance of the form to be used in this view.
 
@@ -91,14 +98,41 @@ class TaskView(FormView):
             return None
         return form_class(**self.get_form_kwargs())
 
+    def post(self, request, *args, **kwargs):
+        """
+        Handle POST requests: instantiate a form instance with the passed
+        POST variables and then check if it's valid.
+
+        Overrides django.views.generic.edit.ProcessFormView to adapt for a case
+        when user hasn't defined form for a given task.
+        """
+        form = self.get_form()
+
+        # no form defined in the task
+        if not form:
+            data = unpack_post(request.POST)
+            # TODO what to do if we have forms defined? is Django nested formset a way to go?
+            # Check https://stackoverflow.com/questions/20894629/django-nested-inline-formsets
+            # Check https://docs.djangoproject.com/en/2.0/ref/contrib/admin/#django.contrib.admin.InlineModelAdmin
+            self._send_task(data)
+            return HttpResponseRedirect(self.get_success_url())
+
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
     def form_valid(self, form):
-        self._send_task(form)
+        self._send_task(form.cleaned_data)
         return super(TaskView, self).form_valid(form)
 
     def form_invalid(self, form):
         print('invalid form')
         print(form.errors)
         return super(TaskView, self).form_invalid(form)
+
+    # End of FormView override
+    # ========================
 
     def _get_task(self):
         """
@@ -163,18 +197,21 @@ class TaskView(FormView):
         """
         return pbclient.get_new_task(PYBOSSA_PROJECT_ID)
 
-    def _send_task(self, form):
+    def _send_task(self, data):
         """
         Mechanism responsible for sending tasks. Points to PyBossa API taskrun and sends data from form.
         """
+        if DEVELOPMENT_MODE:
+            # In development let's take a shortcut straight to verification
+            taskruns_list = [data]
+            self.task.verify_and_save(taskruns_list)
+
         if TASK_SOURCE == PYBOSSA_SOURCE:
-            return self.send_pybossa_task(form)
+            return self.send_pybossa_task(data)
         else:
             raise TaskSourceNotDefined()
 
-    def send_pybossa_task(self, form):
-        # data = urllib.parse.urlencode(form.cleaned_data)
-        data = form.cleaned_data
+    def send_pybossa_task(self, data):
         user_ip = self.request.META.get(
             'HTTP_X_FORWARDED_FOR', self.request.META.get('REMOTE_ADDR')
         ).split(',')[-1].strip()
@@ -193,7 +230,9 @@ class WebhookTaskRunView(View):
 
     def post(self, request):
         """
-        give a response for request:
+        Receive webhooks from other applications.
+
+        Event: PyBossa's task_completed sends following data
         {
           'fired_at':,
           'project_short_name': 'project-slug',
@@ -211,6 +250,67 @@ class WebhookTaskRunView(View):
             task_id = webhook_data['task_id']
 
             AbstractTask.verify_task(project_id, task_id)
-
             return HttpResponse("ok")
+
         return HttpResponseBadRequest()
+
+
+def unpack_post(post: QueryDict) -> dict:
+    """
+    Unpack items in POST fields that have multiple occurences.
+
+    It handles:
+    - multiple fields without brackets, ie. field
+    - multiple fields PHP5 style, ie. field[]
+    - objects, ie. obj[field1]=val1 obj[field2]=val2
+    - multiple rows of several fields, ie. row[0][field1], row[1][field1]
+    - hierarchily nested multiples, ie. row[0][entry_id], row[0][entry_options][]
+
+    :param QueryDict post: POST data
+    :return: dictionary representing the object passed in POST
+    """
+
+    dpath_separator = '/'
+    result = {}
+    for k in post.keys():
+        # analyze field name
+        m = re.search(r"^" +
+                      "(?P<object>[\w\-_]+)" +
+                      "(?P<selectors>(\[[\d\w\-_]+\])*)" +
+                      "(?P<trailing_brackets>\[\])?" +
+                      "$", k)
+        if not m:
+            raise Exception("Field name not valid: {}".format(k))
+
+        path = m.group('object')
+        convert_to_array_paths = set()
+        if m.group('selectors'):
+            for ms in re.finditer(r'\[([\d\w\-_]+)\]', m.group('selectors')):
+                # if it is integer then make sure list is created
+                idx = ms.group(1)
+                if re.match(r'\d+', idx):
+                    convert_to_array_paths.add(path)
+
+                path += dpath_separator + idx
+
+        def get_list_or_value(post, key):
+            val = post.getlist(key)
+            # single element leave single unless developer put brackets
+            if len(val) == 1 and not m.group('trailing_brackets'):
+                val = val[0]
+            return val
+
+        dpath.util.new(result, path, get_list_or_value(post, k), separator=dpath_separator)
+
+    # dpath only works on dicts, but sometimes we want arrays
+    # ie. row[0][fld]=0&row[1][fld]=1 results in row { "0": {}, "1": {} } instead of row [ {}, {} ]
+    for path_to_d in convert_to_array_paths:
+        arr = []
+        d = dpath.util.get(result, path_to_d)
+        numeric_keys = [int(k_int) for k_int in d.keys()]
+        for k_int in sorted(numeric_keys):
+            arr.append(d[str(k_int)])
+
+        dpath.util.set(result, path_to_d, arr)
+
+    return result

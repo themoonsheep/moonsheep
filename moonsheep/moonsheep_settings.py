@@ -10,6 +10,13 @@ DEFAULT_SOURCE = RANDOM_SOURCE
 
 TASK_SOURCE = getattr(settings, 'MOONSHEEP_TASK_SOURCE', DEFAULT_SOURCE)
 
+"""
+If set Moonsheep won't communicate with PyBossa and will:
+1. serve random mocked tasks
+2. send form submissions straight to the verification  
+"""
+DEVELOPMENT_MODE = getattr(settings, 'MOONSHEEP_DEVELOPMENT_MODE', False)
+
 # pybossa endpoints
 DEFAULT_PYBOSSA_URL = 'http://localhost:5000'
 DEFAULT_PYBOSSA_PROJECT_ID = 1
