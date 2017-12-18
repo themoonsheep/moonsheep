@@ -1,13 +1,13 @@
 from django.test import TestCase as DjangoTestCase, Client, override_settings
 from django.http.request import QueryDict
 from unittest import TestCase as UnitTestCase
-from unittest.mock import Mock, MagicMock, patch, sentinel
+from unittest.mock import Mock, MagicMock, patch, sentinel 
 
 from moonsheep.tasks import AbstractTask
 from moonsheep.exceptions import PresenterNotDefined
 from moonsheep.views import unpack_post
 from moonsheep.tests import DummyTask
-from moonsheep.verifiers import EqualsVerifier, UnorderedSetVerifier
+from moonsheep.verifiers import equals, OrderedListVerifier
 
 import json
 
@@ -333,48 +333,155 @@ class TaskProcessingTests(DjangoTestCase):
         task = AbstractTask.create_task_instance('moonsheep.tests.DummyTask', info={'url': 'https://bla.pl'})
         self.assertEquals(task.__class__, DummyTask)
 
-    @patch('moonsheep.verifiers.EqualsVerifier.__call__')
+    @patch('moonsheep.verifiers.equals')
     def test_verification_default_equals_mock(self, equals_mock: MagicMock):
         verified_dict_data = {'fld': 'val1'}
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
         equals_mock.return_value = (1, verified_dict_data)
-        
+
         task.cross_check([verified_dict_data, verified_dict_data])
-        equals_mock.assert_called_with([verified_dict_data, verified_dict_data])
+        equals_mock.assert_called_with(['val1', 'val1'])
 
     def test_verification_default_equals_true(self):
         verified_dict_data = {'fld': 'val1'}
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
-        (confidence, result) = task.cross_check([verified_dict_data, verified_dict_data])
+        (result, confidence) = task.cross_check([verified_dict_data, verified_dict_data])
         self.assertEquals(result, verified_dict_data)
 
     def test_verification_default_equals_false(self):
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
-        (confidence, result) = task.cross_check([{'fld': 'val1'}, {'fld': 'whatever'}])
+        (result, confidence) = task.cross_check([{'fld': 'val1'}, {'fld': 'whatever'}])
         self.assertEquals(confidence, 0)
         self.assertEquals(result, None)
 
-    @patch('moonsheep.verifiers.UnorderedSetVerifier.__call__')
-    def test_verification_default_unordered_set_mock(self, unordered_set_mock: MagicMock):
-        verified_list_data = [1, 2, 3]
+    @patch('moonsheep.verifiers.OrderedListVerifier.__call__')
+    def test_verification_default_ordered_list_mock(self, unordered_set_mock: MagicMock):
+        verified_list_data = {'items': [1, 2, 3]}
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
+        unordered_set_mock.side_effect = [([1, 2, 3], 1)]
         task.cross_check([verified_list_data, verified_list_data])
-        unordered_set_mock.assert_called_with([verified_list_data, verified_list_data])
+        unordered_set_mock.assert_called_with([[1, 2, 3], [1, 2, 3]])
 
-    def test_verification_default_unordered_set_true(self):
-        verified_list_data = [1, 2, 3]
+    def test_verification_default_ordered_list_true(self):
+        verified_list_data = {'items': [1, 2, 3]}
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
-        (confidence, result) = task.cross_check([verified_list_data, verified_list_data])
+        (result, confidence) = task.cross_check([verified_list_data, verified_list_data])
         self.assertEquals(result, verified_list_data)
 
-    def test_verification_default_unordered_set_false(self):
+    def test_verification_default_ordered_list_false(self):
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
-        (confidence, result) = task.cross_check([[1, 2, 3], [7, 8]])
+        (result, confidence) = task.cross_check([{'items': [1, 2, 3]}, {'items': [7, 2, 8]}])
         self.assertEquals(confidence, 0)
         self.assertEquals(result, None)
+
+    def test_verification_default_complex_true(self):
+        verified_dict_data = {'cars': [{'model': 'A', 'year': 2011}, {'model': 'B', 'year': 2012}]}
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        (result, confidence) = task.cross_check([verified_dict_data, verified_dict_data])
+
+        self.assertEquals(confidence, 1)
+        self.assertEquals(result, verified_dict_data)
+
+    @patch('moonsheep.verifiers.equals')
+    def test_verification_default_complex(self, equals_mock: MagicMock):
+        verified_dict_data = {'cars': [{'model': 'A', 'year': 2011}, {'model': 'B', 'year': 2012}]}
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        equals_mock.side_effect = lambda values: (1, values[0])
+
+        task.cross_check([verified_dict_data, verified_dict_data])
+        equals_mock.assert_called_with([verified_dict_data, verified_dict_data])
+        equals_mock.assert_called_with(['val1', 'val1'])
+        equals_mock.assert_called_with(['val2', 'val2'])
+
+
+class CustomVerificationTests(UnitTestCase):
+    # TODO
+    pass
+
+
+class VerifierEqualsTest(UnitTestCase):
+    def test_same_text(self):
+        (result, confidence) = equals(['a', 'a', 'a'])
+
+        self.assertEquals(result, 'a')
+        self.assertEquals(confidence, 1)
+
+    def test_same_num(self):
+        (result, confidence) = equals([2, 2, 2])
+
+        self.assertEquals(result, 2)
+        self.assertEquals(confidence, 1)
+
+    def test_outlier(self):
+        (result, confidence) = equals(['a', 'a', 'a', 'b'])
+
+        self.assertEquals(result, 'a')
+        self.assertGreaterEqual(confidence, 0)
+        self.assertLess(confidence, 1)
+
+    def test_no_standing_out(self):
+        (result, confidence) = equals(['a', 'b', 'c', 'd'])
+
+        self.assertGreaterEqual(confidence, 0)  # TODO shouldn't confidence be 0 in such case?
+        self.assertLess(confidence, 1)
+        self.assertEquals(result, None)
+
+
+class VerifierListTest(UnitTestCase):
+    def test_all_same_text(self):
+        entry = ['val1', 'val2', 'val3', 'val4']
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+        (result, confidence) = OrderedListVerifier(task, '')([entry, entry, entry])
+
+        self.assertEquals(result, entry)
+        self.assertEquals(confidence, 1)
+
+    def test_all_same_num(self):
+        entry = [1, 2, 3, 4]
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+        (result, confidence) = OrderedListVerifier(task, '')([entry, entry, entry])
+
+        self.assertEquals(result, entry)
+        self.assertEquals(confidence, 1)
+
+    def test_different_length1(self):
+        entry = [1, 2, 3, 4]
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+        (result, confidence) = OrderedListVerifier(task, '')([entry, entry, entry + [5]])
+
+        self.assertEquals(result, entry)
+        self.assertGreaterEqual(confidence, 0)
+        self.assertLess(confidence, 1)
+
+    def test_different_length2(self):
+        entry = [1, 2, 3, 4]
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+        (result, confidence) = OrderedListVerifier(task, '')([entry + [5], entry, entry])
+
+        self.assertEquals(result, entry)
+        self.assertGreaterEqual(confidence, 0)
+        self.assertLess(confidence, 1)
+
+    def test_no_standing_out(self):
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+        (result, confidence) = OrderedListVerifier(task, '')([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+
+        self.assertLess(confidence, 1)
+        self.assertGreaterEqual(confidence, 0)
+        # self.assertEquals(result, None)
+
+    def test_ordering(self):
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+        (result, confidence) = OrderedListVerifier(task, '')([[1, 2, 3, 4], [4, 3, 2, 1]])
+
+        self.assertLess(confidence, 1)
+        self.assertGreaterEqual(confidence, 0)
+        # self.assertEquals(result, None)

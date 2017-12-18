@@ -1,13 +1,9 @@
-import collections
 import importlib
-import inspect
 import pbclient
-
-from .verifiers import EqualsVerifier
+from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
 
 
 class AbstractTask(object):
-    MIN_CONFIDENCE = 0.5
     N_ANSWERS = 1
 
     def __init__(self, **kwargs):
@@ -53,8 +49,8 @@ class AbstractTask(object):
         :rtype: bool
         :return: True if verified otherwise False
         """
-        confidence, crosschecked = self.cross_check(taskruns_list)
-        self.verified = confidence > self.MIN_CONFIDENCE
+        crosschecked, confidence = self.cross_check(taskruns_list)
+        self.verified = confidence >= MIN_CONFIDENCE
         if self.verified:
             # save verified data
             self.save_verified_data(crosschecked)
@@ -66,47 +62,15 @@ class AbstractTask(object):
             # TODO: do something here
             return False
 
-    def cross_check(self, taskruns_list):
-        # TODO: to implement verify_data let's copy how django forms do it: django.forms.forms.BaseForm#full_clean
+    def cross_check(self, entries: list) -> (dict, float):
         """
-        Verification method for all form fields in regard to answers of other users' (other taskruns).
-        It iterates through all taskrun fields and invokes verify_field of AbstractTask.
-        If no verify_field method or verifier then calls EqualsVerifier.
-
-        :param taskruns_list: list containing taskrun dictionaries
-        :type taskruns_list: list
-        :return: dictionary containing tuples of verified fields
+        Cross check all entries recursively
+        :param entries: Entries for a given task
+        :return (dict, float): (results, confidence)
         """
-        taskruns_dict = collections.defaultdict(list)
-        results_dict = {}
-        confidences_list = []
 
-        for d in taskruns_list:
-            for k, v in d.items():
-                taskruns_dict[k].append(v)
-
-        for k, v in taskruns_dict.items():
-            verifier = getattr(self, "verify_" + k, EqualsVerifier)
-
-            # Create instance of verifier class if needed
-            if inspect.isclass(verifier):
-                verifier = verifier()
-
-            value, confidence = verifier(v)
-            results_dict[k] = value
-            confidences_list.append(confidence)
-
-        overall_confidence = self.calculate_confidence(confidences_list)
-        return overall_confidence, results_dict
-
-    def calculate_confidence(self, confidences):
-        return self.min_input_confidence(confidences)
-
-    def min_input_confidence(self, values_list):
-        return min(values_list)
-
-    def max_input_confidence(self, values_list):
-        return max(values_list)
+        verifier = DEFAULT_DICT_VERIFIER(self, '')
+        return verifier(entries)
 
     def save_verified_data(self, verified_data):
         """
