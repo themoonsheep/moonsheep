@@ -8,6 +8,8 @@ class AbstractTask(object):
 
     def __init__(self, **kwargs):
         self.url = kwargs.get('info').get('url')
+        self.data = kwargs.get('info')
+
         # to override templates
         if 'task_form' in kwargs.get('info'):
             self.task_form = AbstractTask.klass_from_name(kwargs.get('info').get('task_form'))
