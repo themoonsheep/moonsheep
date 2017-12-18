@@ -2,4 +2,5 @@
 __pycache__/
 node_modules/
 .tox/
+.coverage
 *.egg-info/

@@ -1,10 +1,15 @@
-from django.test import TestCase
+from django.test import TestCase as DjangoTestCase, Client, override_settings
 from django.http.request import QueryDict
 from unittest import TestCase as UnitTestCase
+from unittest.mock import Mock, MagicMock, patch, sentinel
 
 from moonsheep.tasks import AbstractTask
 from moonsheep.exceptions import PresenterNotDefined
 from moonsheep.views import unpack_post
+from moonsheep.tests import DummyTask
+from moonsheep.verifiers import EqualsVerifier, UnorderedSetVerifier
+
+import json
 
 
 class PresenterTests(UnitTestCase):
@@ -159,6 +164,10 @@ class UnpackPostTest(UnitTestCase):
         })
 
     def test_rows_alpha_index(self):
+        """
+        TODO this test is unstable (once fails, once not)
+        :return:
+        """
         post = QueryDict('row[0][fld]=0&row[bla][fld]=bla')
         with self.assertRaises(ValueError):
             unpack_post(post)
@@ -217,6 +226,15 @@ class UnpackPostTest(UnitTestCase):
         })
 
     def test_nested_rows_numbered(self):
+        """
+        TODO fails sometimes, sometimes work
+        - {'row': [{'entry_id': 'val1', 'entry_options': {'0': 'val2', '1': 'val3'}}]}
+?                                                ^^^^^^        -----      ^
+
++ {'row': [{'entry_id': 'val1', 'entry_options': ['val2', 'val3']}]}
+?
+        :return:
+        """
         post = QueryDict('row[0][entry_id]=val1&row[0][entry_options][0]=val2&row[0][entry_options][1]=val3')
         self.assertDictEqual(unpack_post(post), {
             'row': [{
@@ -225,3 +243,136 @@ class UnpackPostTest(UnitTestCase):
             }]
         })
 
+
+@override_settings(ROOT_URLCONF='moonsheep.urls')
+class TaskProcessingTests(DjangoTestCase):
+
+    @patch('moonsheep.tasks.AbstractTask.verify_task')
+    def test_webhook_exists(self, verify_task_mock: MagicMock):
+        client = Client()
+        response = client.get('/webhooks/task-run/')
+
+        self.assertEqual(response.status_code, 200)
+        verify_task_mock.assert_not_called()
+
+    @patch('moonsheep.tasks.AbstractTask.verify_task')
+    def test_webhook_receives(self, verify_task_mock: MagicMock):
+        client = Client()
+        data = {
+            'event': 'task_completed',
+            'project_id': "PROJECT_ID",
+            'task_id': "TASK_ID",
+        }
+        response = client.post('/webhooks/task-run/', json.dumps(data), content_type="application/json")
+
+        self.assertEqual(response.status_code, 200)
+        verify_task_mock.assert_called_with("PROJECT_ID", "TASK_ID")
+
+    def test_webhook_receives_missing_data(self):
+        client = Client()
+        data = {
+            'event': 'task_completed',
+        }
+        response = client.post('/webhooks/task-run/', json.dumps(data), content_type="application/json")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_webhook_unrecognized_event(self):
+        client = Client()
+        data = {
+            'event': 'unknown_event',
+        }
+        response = client.post('/webhooks/task-run/', json.dumps(data), content_type="application/json")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_webhook_no_payload(self):
+        client = Client()
+        response = client.post('/webhooks/task-run/')
+
+        self.assertEqual(response.status_code, 400)
+
+    @patch('moonsheep.tasks.AbstractTask.after_save')
+    @patch('moonsheep.tasks.AbstractTask.save_verified_data')
+    def test_flow_of_verified(self, save_verified_data_mock, after_save_mock):
+        verified_data = {'fld': 'val1'}
+
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        # TODO test verification on one input
+        task.verify_and_save([verified_data, verified_data])
+
+        save_verified_data_mock.assert_called_with(verified_data)
+        after_save_mock.assert_called_with(verified_data)
+
+    @patch('moonsheep.tasks.AbstractTask.after_save')
+    @patch('moonsheep.tasks.AbstractTask.save_verified_data')
+    def test_flow_one_input(self, save_verified_data_mock, after_save_mock):
+        """
+        One input shouldn't be enough for verification to run successful
+        In future this may be extended to set a limit
+        :return:
+        """
+        verified_data = {'fld': 'val1'}
+
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        task.verify_and_save([verified_data])
+
+        save_verified_data_mock.assert_not_called_with(verified_data)
+        after_save_mock.assert_not_called_with(verified_data)
+
+    def test_flow_of_unverified(self):
+        """
+        TODO
+        :return:
+        """
+        pass
+
+    def test_create_task_instance(self):
+        task = AbstractTask.create_task_instance('moonsheep.tests.DummyTask', info={'url': 'https://bla.pl'})
+        self.assertEquals(task.__class__, DummyTask)
+
+    @patch('moonsheep.verifiers.EqualsVerifier.__call__')
+    def test_verification_default_equals_mock(self, equals_mock: MagicMock):
+        verified_dict_data = {'fld': 'val1'}
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        task.cross_check([verified_dict_data, verified_dict_data])
+        equals_mock.assert_called_with([verified_dict_data, verified_dict_data])
+
+    def test_verification_default_equals_true(self):
+        verified_dict_data = {'fld': 'val1'}
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        (confidence, result) = task.cross_check([verified_dict_data, verified_dict_data])
+        self.assertEquals(result, verified_dict_data)
+
+    def test_verification_default_equals_false(self):
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        (confidence, result) = task.cross_check([{'fld': 'val1'}, {'fld': 'whatever'}])
+        self.assertEquals(confidence, 0)
+        self.assertEquals(result, None)
+
+    @patch('moonsheep.verifiers.UnorderedSetVerifier.__call__')
+    def test_verification_default_unordered_set_mock(self, unordered_set_mock: MagicMock):
+        verified_list_data = [1, 2, 3]
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        task.cross_check([verified_list_data, verified_list_data])
+        unordered_set_mock.assert_called_with([verified_list_data, verified_list_data])
+
+    def test_verification_default_unordered_set_true(self):
+        verified_list_data = [1, 2, 3]
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        (confidence, result) = task.cross_check([verified_list_data, verified_list_data])
+        self.assertEquals(result, verified_list_data)
+
+    def test_verification_default_unordered_set_false(self):
+        task = AbstractTask(info={'url': 'https://bla.pl'})
+
+        (confidence, result) = task.cross_check([[1, 2, 3], [7, 8]])
+        self.assertEquals(confidence, 0)
+        self.assertEquals(result, None)

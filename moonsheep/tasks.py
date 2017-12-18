@@ -167,11 +167,11 @@ class AbstractTask(object):
     @staticmethod
     def verify_task(project_id, task_id):
         task_data = pbclient.get_task(project_id=project_id, task_id=task_id)
-        task = AbstractTask.create_task_instance(task_data[0]['info']['type'], **task_data[0])
 
         taskruns = pbclient.find_taskruns(project_id=project_id, task_id=task_id)
         taskruns_list = [taskrun.data['info'] for taskrun in taskruns]
 
+        task = AbstractTask.create_task_instance(task_data[0]['info']['type'], **task_data[0])
         task.verify_and_save(taskruns_list)
 
 # # Flow 2. Serve form for a given task  (to implement in Moonsheep Controller)
