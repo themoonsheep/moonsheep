@@ -338,6 +338,8 @@ class TaskProcessingTests(DjangoTestCase):
         verified_dict_data = {'fld': 'val1'}
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
+        equals_mock.return_value = (1, verified_dict_data)
+        
         task.cross_check([verified_dict_data, verified_dict_data])
         equals_mock.assert_called_with([verified_dict_data, verified_dict_data])
 
