@@ -74,7 +74,7 @@ class AbstractTask(object):
         verifier = DEFAULT_DICT_VERIFIER(self, '')
         return verifier(entries)
 
-    def save_verified_data(self, verified_data):
+    def save_verified_data(self, verified_data: dict):
         """
         To implement in derived classes
         :param verified_data:

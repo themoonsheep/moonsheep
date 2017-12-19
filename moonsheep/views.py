@@ -106,6 +106,11 @@ class TaskView(FormView):
         Overrides django.views.generic.edit.ProcessFormView to adapt for a case
         when user hasn't defined form for a given task.
         """
+        if '_task_type_' not in request.POST:
+            # TODO handle specific task generation, ask @ppeczek if it's right
+            # we would also need task id! and maybe project id!
+            # return HttpResponseBadRequest('Missing _task_type field')
+            pass
         form = self.get_form()
 
         # no form defined in the task
@@ -281,6 +286,8 @@ def unpack_post(post: QueryDict) -> dict:
 
     dpath_separator = '/'
     result = {}
+    convert_to_array_paths = set()
+
     for k in post.keys():
         # analyze field name
         m = re.search(r"^" +
@@ -292,7 +299,6 @@ def unpack_post(post: QueryDict) -> dict:
             raise Exception("Field name not valid: {}".format(k))
 
         path = m.group('object')
-        convert_to_array_paths = set()
         if m.group('selectors'):
             for ms in re.finditer(r'\[([\d\w\-_]+)\]', m.group('selectors')):
                 # if it is integer then make sure list is created
