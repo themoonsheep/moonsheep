@@ -1,6 +1,10 @@
 .idea/
 __pycache__/
 node_modules/
+
+*.pyc
 .tox/
 .coverage
-*.egg-info/
+*.egg-info
+.eggs/
+build/

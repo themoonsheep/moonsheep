@@ -19,6 +19,7 @@ setup(
     author_email='ppeczek@epf.org.pl',
     url='https://github.com/TransparenCEE/moonsheep/',
     download_url='',
+    test_suite='runtests.runtests',
     license='AGPL-3.0',
     install_requires=[
         'Django>=1.11',
