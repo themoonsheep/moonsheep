@@ -29,7 +29,7 @@ class ModelMapper:
                 self.fields[fld_name] = missing()
             return self
 
-        if v is not None:
+        if v is not None and v != '':
             self.fields[fld_name] = convert(v)
 
         return self

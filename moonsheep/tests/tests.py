@@ -585,3 +585,24 @@ class ModelMapperTest(UnitTestCase):
         dummy = m.create()
         self.assertEquals(dummy.char, 'end-value')
         self.assertIsInstance(dummy, Dummy)
+
+    def test_dont_overwrite_if_empty(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+
+        m = ModelMapper(Dummy, {'char': 'choose other', 'other': ''}).map()
+        m.map_one('char', 'other')
+
+        dummy = m.create()
+        self.assertEquals(dummy.char, 'choose other')
+        self.assertIsInstance(dummy, Dummy)
+
+    def test_create_with_extras(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+            integer = models.IntegerField()
+
+        dummy = ModelMapper(Dummy, {'char': 'value'}).map().create(char='new value', integer=3)
+        self.assertEquals(dummy.char, 'new value')
+        self.assertEquals(dummy.integer, 3)
+        self.assertIsInstance(dummy, Dummy)
