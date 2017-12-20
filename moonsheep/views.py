@@ -42,28 +42,10 @@ class TaskView(FormView):
     # TODO either we should have full template in Moonsheep or have that template in project_template
     template_name = 'task.html'
     form_template_name = None
+    task = None
+    form_class = None
 
-    def __init__(self, *args, **kwargs):
-        # TODO: don't get task for each creation
-        self.task = self._get_task()
-
-        # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
-        # By default it uses moonsheep/templates/task.html
-        if hasattr(self.task, 'task_template'):
-            self.template_name = self.task.task_template
-
-        if hasattr(self.task, 'task_form_template'):
-            self.form_template_name = self.task.task_form_template
-        if hasattr(self.task, 'task_form'):
-            self.form_class = self.task.task_form
-
-        if self.form_class is None and self.form_template_name is None:
-            raise TaskWithNoTemplateNorForm(self.task.__class__)
-
-        super(TaskView, self).__init__(*args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        # TODO: update docstring
+    def get(self, request, *args, **kwargs):
         """
         Returns form for a this task
 
@@ -74,29 +56,12 @@ class TaskView(FormView):
         4. Otherwise return error suggesting to implement 2 or 3
         :return: path to the template (string) or Django's Form class
         """
-        context = super(TaskView, self).get_context_data(**kwargs)
-        context.update({
-            'presenter': self.task.get_presenter(),
-            'task': self.task,
-        })
-        return context
+        self.task = self._get_task()
 
-    # =====================
-    # Override FormView to adapt for a case when user hasn't defined form for a given task
-    # and to process form in our own manner
+        self._get_form_class_data()
 
-    def get_form(self, form_class=None):
-        """Return an instance of the form to be used in this view.
-
-        Overrides django.views.generic.edit.FormMixin to adapt for a case
-        when user hasn't defined form for a given task.
-        """
-        if form_class is None:
-            form_class = self.get_form_class()
-
-        if form_class is None:
-            return None
-        return form_class(**self.get_form_kwargs())
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
         """
@@ -106,11 +71,19 @@ class TaskView(FormView):
         Overrides django.views.generic.edit.ProcessFormView to adapt for a case
         when user hasn't defined form for a given task.
         """
-        if '_task_type_' not in request.POST:
-            # TODO handle specific task generation, ask @ppeczek if it's right
-            # we would also need task id! and maybe project id!
-            # return HttpResponseBadRequest('Missing _task_type field')
-            pass
+        if '_task_id' not in request.POST:
+            return HttpResponseBadRequest('Missing _task_id field. Include moonsheep_token template tag!')
+
+        if '_project_id' not in request.POST:
+            return HttpResponseBadRequest('Missing _project_id field. Include moonsheep_token template tag!')
+
+        self.task = self._get_task(
+            new=False,
+            project_id=request.POST['_project_id'],
+            task_id=request.POST['_task_id']
+        )
+
+        self._get_form_class_data()
         form = self.get_form()
 
         # no form defined in the task
@@ -127,6 +100,48 @@ class TaskView(FormView):
         else:
             return self.form_invalid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super(TaskView, self).get_context_data(**kwargs)
+        context.update({
+            'presenter': self.task.get_presenter(),
+            'task': self.task,
+        })
+        return context
+
+    def _get_form_class_data(self):
+        # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
+        # By default it uses moonsheep/templates/task.html
+        if hasattr(self.task, 'task_template'):
+            self.template_name = self.task.task_template
+
+        if hasattr(self.task, 'task_form_template'):
+            self.form_template_name = self.task.task_form_template
+        if hasattr(self.task, 'task_form'):
+            self.form_class = self.task.task_form
+
+        if self.form_class is None and self.form_template_name is None:
+            raise TaskWithNoTemplateNorForm(self.task.__class__)
+
+    # =====================
+    # Override FormView to adapt for a case when user hasn't defined form for a given task
+    # and to process form in our own manner
+
+    def get_form_class(self):
+        return self.task.task_form if hasattr(self.task, 'task_form') else None
+
+    def get_form(self, form_class=None):
+        """Return an instance of the form to be used in this view.
+
+        Overrides django.views.generic.edit.FormMixin to adapt for a case
+        when user hasn't defined form for a given task.
+        """
+        if form_class is None:
+            form_class = self.get_form_class()
+
+        if form_class is None:
+            return None
+        return form_class(**self.get_form_kwargs())
+
     def form_valid(self, form):
         self._send_task(form.cleaned_data)
         return super(TaskView, self).form_valid(form)
@@ -139,7 +154,18 @@ class TaskView(FormView):
     # End of FormView override
     # ========================
 
-    def _get_task(self):
+    def _get_task(self, new=True, project_id=None, task_id=None):
+        if new:
+            task_data = self._get_new_task()
+        else:
+            task_data = pbclient.get_task(
+                project_id=project_id,
+                task_id=task_id
+            )[0]
+
+        return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
+
+    def _get_new_task(self):
         """
         Mechanism responsible for getting tasks. Points to PyBossa API and collects task.
         Task structure contains type, url and metadata that might be displayed in template.
@@ -150,14 +176,14 @@ class TaskView(FormView):
         if TASK_SOURCE == RANDOM_SOURCE:
             task = self.get_random_mocked_task()
         elif TASK_SOURCE == PYBOSSA_SOURCE:
-            task = self.get_pybossa_task()
+            task = self.get_random_pybossa_task()
         else:
             raise TaskSourceNotDefined
 
         if not task:
             raise NoTasksLeft
 
-        return AbstractTask.create_task_instance(task['info']['type'], **task)
+        return task
 
     __mocked_task_counter = 0
 
@@ -193,7 +219,7 @@ class TaskView(FormView):
         else:
             return default_params
 
-    def get_pybossa_task(self):
+    def get_random_pybossa_task(self):
         """
         Method for obtaining task structure from distant source, i.e. PyBossa
 
@@ -232,7 +258,7 @@ class WebhookTaskRunView(View):
 
     def get(self, request):
         # empty response so pybossa can set webhook to this endpoint
-        return HttpResponse()
+        return HttpResponse(status=201)
 
     def post(self, request):
         """
