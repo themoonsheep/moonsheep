@@ -1,7 +1,7 @@
 from django.test import TestCase as DjangoTestCase, Client, override_settings
 from django.http.request import QueryDict
 from unittest import TestCase as UnitTestCase
-from unittest.mock import Mock, MagicMock, patch, sentinel 
+from unittest.mock import Mock, MagicMock, patch, sentinel
 
 from moonsheep.tasks import AbstractTask
 from moonsheep.exceptions import PresenterNotDefined
@@ -70,6 +70,7 @@ class PresenterTests(UnitTestCase):
 
         with self.assertRaises(PresenterNotDefined):
             t.get_presenter()
+
 
 # TODO test error handling for Tasks with no form and no template
 
@@ -485,3 +486,102 @@ class VerifierListTest(UnitTestCase):
         self.assertLess(confidence, 1)
         self.assertGreaterEqual(confidence, 0)
         # self.assertEquals(result, None)
+
+
+from django.db import models
+from moonsheep.models import ModelMapper
+
+
+class ModelMapperTest(UnitTestCase):
+    def test_general(self):
+        class Dummy(models.Model):
+            boolean = models.BooleanField()
+            null_boolean = models.NullBooleanField()
+            char = models.CharField(max_length=128)
+            integer = models.IntegerField(blank=True, null=True)
+
+        data = {
+            'boolean': 'on',
+            'null_boolean': 'on',
+            'char': 'char',
+            'integer': '3'
+        }
+        dummy = ModelMapper(Dummy, data).map().create()
+
+        self.assertIsInstance(dummy, Dummy)
+        self.assertEquals(dummy.boolean, True)
+        self.assertEquals(dummy.null_boolean, True)
+        self.assertEquals(dummy.char, 'char')
+        self.assertEquals(dummy.integer, 3)
+
+    def test_empty(self):
+        # TODO warning RuntimeWarning: Model 'moonsheep.dummy' was already registered. Reloading models is not advised as it can lead to inconsistencies, most notably with related models.
+        # make dummy a proper test model
+        class Dummy(models.Model):
+            boolean = models.BooleanField()
+            null_boolean = models.NullBooleanField()
+            char = models.CharField(max_length=128)
+            integer = models.IntegerField(blank=True, null=True)
+
+        data = {}
+        ModelMapper(Dummy, data).map().create()
+
+    def test_char_filled(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+
+        dummy = ModelMapper(Dummy, {'char': 'filled'}).map().create()
+        self.assertEquals(dummy.char, 'filled')
+        self.assertIsInstance(dummy, Dummy)
+
+    def test_char_empty(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+
+        dummy = ModelMapper(Dummy, {'char': ''}).map().create()
+        self.assertEquals(dummy.char, '')
+        self.assertIsInstance(dummy, Dummy)
+
+    def test_char_missing(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+
+        dummy = ModelMapper(Dummy, {}).map().create()
+        self.assertEquals(dummy.char, '')
+        self.assertIsInstance(dummy, Dummy)
+
+    def test_rename_one(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+
+        dummy = ModelMapper(Dummy, {'some_param': 'value'}).map_one('char', 'some_param').create()
+        self.assertEquals(dummy.char, 'value')
+        self.assertIsInstance(dummy, Dummy)
+
+    def test_rename_many(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+            integer = models.IntegerField(blank=True, null=True)
+
+        dummy = ModelMapper(Dummy, {
+            'some_param': 'value',
+            'other_param': '4'
+        }).map(rename={
+            'char': 'some_param',
+            'integer': 'other_param'
+        }).create()
+
+        self.assertEquals(dummy.char, 'value')
+        self.assertEquals(dummy.integer, 4)
+        self.assertIsInstance(dummy, Dummy)
+
+    def test_overwrite(self):
+        class Dummy(models.Model):
+            char = models.CharField(max_length=128)
+
+        m = ModelMapper(Dummy, {'char': 'choose other', 'other': 'end-value'})
+        m.map_one('char', 'other')
+
+        dummy = m.create()
+        self.assertEquals(dummy.char, 'end-value')
+        self.assertIsInstance(dummy, Dummy)
