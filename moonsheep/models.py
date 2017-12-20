@@ -61,5 +61,7 @@ class ModelMapper:
 
         return self
 
-    def create(self):
-        return self.klass(**self.fields)
+    def create(self, **extras):
+        params = self.fields
+        params.update(extras)
+        return self.klass(**params)
