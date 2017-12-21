@@ -158,10 +158,13 @@ class TaskView(FormView):
         if new:
             task_data = self._get_new_task()
         else:
-            task_data = pbclient.get_task(
-                project_id=project_id,
-                task_id=task_id
-            )[0]
+            if DEVELOPMENT_MODE:
+                task_data = self.get_random_mocked_task_data(task_id)
+            else:
+                task_data = pbclient.get_task(
+                    project_id=project_id,
+                    task_id=task_id
+                )[0]
 
         return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
 
@@ -174,7 +177,7 @@ class TaskView(FormView):
         :return: user's implementation of AbstractTask object
         """
         if TASK_SOURCE == RANDOM_SOURCE:
-            task = self.get_random_mocked_task()
+            task = self.get_random_mocked_task_data()
         elif TASK_SOURCE == PYBOSSA_SOURCE:
             task = self.get_random_pybossa_task()
         else:
@@ -187,29 +190,32 @@ class TaskView(FormView):
 
     __mocked_task_counter = 0
 
-    def get_random_mocked_task(self):
+    def get_random_mocked_task_data(self, task_type=None):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
-        defined_tasks = [
-            klass.__module__ + '.' + klass.__qualname__ for klass in globals()['AbstractTask'].__subclasses__()
-        ]
-        defined_tasks.sort()
+        if task_type is None:
+            defined_tasks = [
+                klass.__module__ + '.' + klass.__qualname__ for klass in globals()['AbstractTask'].__subclasses__()
+            ]
+            defined_tasks.sort()
 
-        if not defined_tasks:
-            raise NotImplementedError(
-                "You haven't defined any tasks or forgot to add in urls.py folllowing line: from .tasks import *"
-                + "# Keep it to make Moonsheep aware of defined tasks")
+            if not defined_tasks:
+                raise NotImplementedError(
+                    "You haven't defined any tasks or forgot to add in urls.py folllowing line: from .tasks import *"
+                    + "# Keep it to make Moonsheep aware of defined tasks")
 
-        # Rotate tasks one after another
-        TaskView.__mocked_task_counter += 1
-        if TaskView.__mocked_task_counter >= len(defined_tasks):
-            TaskView.__mocked_task_counter = 0
-        task_type = defined_tasks[TaskView.__mocked_task_counter]
+            # Rotate tasks one after another
+            TaskView.__mocked_task_counter += 1
+            if TaskView.__mocked_task_counter >= len(defined_tasks):
+                TaskView.__mocked_task_counter = 0
+            task_type = defined_tasks[TaskView.__mocked_task_counter]
 
         default_params = {
             'info': {
                 "url": "http://sccg.sk/~cernekova/Benesova_Digital%20Image%20Processing%20Lecture%20Objects%20tracking%20&%20motion%20detection.pdf",
                 "type": task_type,
-            }
+            },
+            'id': task_type,
+            'project_id': 'https://i.imgflip.com/hkimf.jpg'
         }
 
         task = AbstractTask.create_task_instance(task_type, **default_params)

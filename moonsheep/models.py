@@ -13,7 +13,7 @@ class ModelMapper:
         self.getter = default_getter
 
         allowed_keys = ['getter']
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             if k not in allowed_keys:
                 raise Exception("ModelMapper doesn't allow argument '{}'".format(k))
             self.__setattr__(k, v)
