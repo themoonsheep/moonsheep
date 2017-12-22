@@ -23,7 +23,7 @@ setup(
     license='AGPL-3.0',
     install_requires=[
         'Django>=1.11',
-        'git+https://github.com/TransparenCEE/pybossa-client.git',
+        'pybossa-client~=2.0',
         'dpath~=1.4'
     ],
     classifiers=[
