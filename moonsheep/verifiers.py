@@ -93,6 +93,7 @@ class OrderedListVerifier(TaskVerifier):
         super().__init__(task, model_prefix)
 
     def __call__(self, entries: List[List]):
+        entries.sort(key = lambda s: len(s))
         verifier = self.verifier_for(type(entries[0][0]))
 
         # Create instance of verifier class if needed
