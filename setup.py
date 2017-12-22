@@ -6,7 +6,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 
 setup(
     name='django-moonsheep',
-    version='0.1.0',
+    version='0.2.0',
     # packages=['moonsheep'],
     packages=find_packages(),
     include_package_data=True,
@@ -23,7 +23,7 @@ setup(
     license='AGPL-3.0',
     install_requires=[
         'Django>=1.11',
-        'pybossa-client',
+        'pybossa-client~=2.0',
         'dpath~=1.4'
     ],
     classifiers=[
