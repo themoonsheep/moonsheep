@@ -282,11 +282,17 @@ class WebhookTaskRunView(View):
         :param request:
         :return:
         """
-        webhook_data = json.loads(request.read().decode('utf-8'))
-        if webhook_data['event'] == 'task_completed':
-            project_id = webhook_data['project_id']
-            task_id = webhook_data['task_id']
+        try:
+            webhook_data = json.loads(request.read().decode('utf-8'))
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest()
 
+        if webhook_data.get('event') == 'task_completed':
+            project_id = webhook_data.get('project_id')
+            task_id = webhook_data.get('task_id')
+
+            if not project_id or not task_id:
+                return HttpResponseBadRequest()
             AbstractTask.verify_task(project_id, task_id)
             return HttpResponse("ok")
 

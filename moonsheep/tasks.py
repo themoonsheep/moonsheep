@@ -35,7 +35,8 @@ class AbstractTask(object):
             'other_presenter_option': 'width: 110px'
         }
         """
-
+        # ^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$
+        # http://(www\.)?vimeo\.com/(\d+)
         return {
             'template': 'presenters/pdf.html',
             'url': self.url

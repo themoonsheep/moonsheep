@@ -24,7 +24,8 @@ setup(
     install_requires=[
         'Django>=1.11',
         'pybossa-client~=2.0',
-        'dpath~=1.4'
+        'dpath~=1.4',
+        'coveralls==1.2.0'
     ],
     classifiers=[
         'Environment :: Web Environment',

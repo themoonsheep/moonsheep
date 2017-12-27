@@ -6,6 +6,7 @@ from typing import List
 
 MIN_CONFIDENCE = 1
 
+
 def max_index(values: list) -> (int, any):
     """
     Return the index and the value of a maximal item
