@@ -264,7 +264,7 @@ class WebhookTaskRunView(View):
 
     def get(self, request):
         # empty response so pybossa can set webhook to this endpoint
-        return HttpResponse(status=201)
+        return HttpResponse(status=200)
 
     def post(self, request):
         """

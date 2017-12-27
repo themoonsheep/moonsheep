@@ -6,7 +6,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 
 setup(
     name='django-moonsheep',
-    version='0.2.0',
+    version='0.2.1',
     # packages=['moonsheep'],
     packages=find_packages(),
     include_package_data=True,
