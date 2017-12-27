@@ -1,6 +1,7 @@
 # moonsheep
 [![Build Status](https://travis-ci.org/TransparenCEE/moonsheep.svg?branch=master)](https://travis-ci.org/TransparenCEE/moonsheep)
 [![Coverage Status](https://coveralls.io/repos/github/TransparenCEE/moonsheep/badge.svg?branch=master)](https://coveralls.io/github/TransparenCEE/moonsheep?branch=master)
+
 Crowdsource data from PDFs
 
 ## Run app
