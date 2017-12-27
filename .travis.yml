@@ -33,7 +33,5 @@ install:
 # command to run tests
 script:
   - tox -e $TOXENV
-after_success:
-  - coveralls
 # containers
 sudo: false

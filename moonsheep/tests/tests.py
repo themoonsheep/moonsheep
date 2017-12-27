@@ -1,7 +1,7 @@
 from django.test import TestCase as DjangoTestCase, Client, override_settings
 from django.http.request import QueryDict
 from unittest import TestCase as UnitTestCase
-from unittest.mock import Mock, MagicMock, patch, sentinel
+from unittest.mock import Mock, MagicMock, patch, sentinel, call
 
 from moonsheep.tasks import AbstractTask
 from moonsheep.exceptions import PresenterNotDefined
@@ -332,7 +332,7 @@ class TaskProcessingTests(DjangoTestCase):
         task = AbstractTask.create_task_instance('moonsheep.tests.DummyTask', info={'url': 'https://bla.pl'})
         self.assertEquals(task.__class__, DummyTask)
 
-    @patch('moonsheep.verifiers.equals')
+    @patch('moonsheep.verifiers.DEFAULT_BASIC_VERIFIER_METHOD')
     def test_verification_default_equals_mock(self, equals_mock: MagicMock):
         verified_dict_data = {'fld': 'val1'}
         task = AbstractTask(info={'url': 'https://bla.pl'})
@@ -392,19 +392,17 @@ class TaskProcessingTests(DjangoTestCase):
         self.assertEquals(confidence, 1)
         self.assertEquals(result, verified_dict_data)
 
-    @patch('moonsheep.verifiers.equals')
+    @patch('moonsheep.verifiers.DEFAULT_BASIC_VERIFIER_METHOD')
     def test_verification_default_complex(self, equals_mock: MagicMock):
         verified_dict_data = {'cars': [{'model': 'A', 'year': 2011}, {'model': 'B', 'year': 2012}]}
         task = AbstractTask(info={'url': 'https://bla.pl'})
 
-        equals_mock.side_effect = lambda values: (1, values[0])
+        equals_mock.side_effect = lambda values: (values[0], 1)
 
         task.cross_check([verified_dict_data, verified_dict_data])
         # equals_mock.assert_not_called_with([verified_dict_data, verified_dict_data])
-        equals_mock.assert_called_with(['A', 'A'])
-        equals_mock.assert_called_with([2011, 2011])
-        equals_mock.assert_called_with(['B', 'B'])
-        equals_mock.assert_called_with([2012, 2012])
+        calls = [call(['A', 'A']), call([2011, 2011]), call(['B', 'B']), call([2012, 2012])]
+        equals_mock.assert_has_calls(calls, any_order=True)
 
 
 class CustomVerificationTests(UnitTestCase):
