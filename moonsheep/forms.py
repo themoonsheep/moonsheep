@@ -1,7 +1,46 @@
+import re
+
 from django import forms
+from django.core.validators import RegexValidator, ValidationError
 from django.template.loader import render_to_string
 from django.forms.fields import EMPTY_VALUES
 from django.utils.translation import ugettext as _
+
+
+class MultipleRangeField(forms.CharField):
+    default_validators = [RegexValidator(regex="[\w\d]+(-[\w\d]+)?(,[\w\d]+(-[\w\d]+)?)*")]
+
+    def to_python(self, value):
+        values = []
+
+        # test if spaces don't
+        no_spaces = value.split(" ")
+        while "" in no_spaces:
+            no_spaces.remove("")
+        for idx, val in enumerate(no_spaces):
+            if len(no_spaces) > idx + 1 and re.match("^\d+$", val) and re.match("^\d+$", no_spaces[idx+1]):
+                raise ValidationError("")
+        value = value.replace(" ", "")
+        sections = value.split(",")
+        for section in sections:
+            section_range = section.split("-")
+            if len(section_range) > 2:
+                raise ValidationError("Wrong range format")
+            elif len(section_range) == 2:
+                # TODO: include postfixes and prefixes
+                v_start = int(section_range[0])
+                v_end = int(section_range[1])
+                if v_start > v_end:
+                    raise ValidationError("Reverse range")
+                for v in range(v_start, v_end + 1):
+                    if str(v) not in values:
+                        values.append(str(v))
+            elif len(section_range) == 1:
+                if section_range[0] not in values:
+                    values.append(section_range[0])
+            else:
+                raise ValidationError
+        return values
 
 
 class RangeWidget(forms.MultiWidget):

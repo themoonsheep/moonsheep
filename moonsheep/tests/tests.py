@@ -1,15 +1,21 @@
-from django.test import TestCase as DjangoTestCase, Client, override_settings
+import json
+
+from django.core.exceptions import ValidationError
+from django.db import models
 from django.http.request import QueryDict
+from django.test import TestCase as DjangoTestCase, Client, override_settings
+
 from unittest import TestCase as UnitTestCase
 from unittest.mock import Mock, MagicMock, patch, sentinel, call
 
-from moonsheep.tasks import AbstractTask
 from moonsheep.exceptions import PresenterNotDefined
-from moonsheep.views import unpack_post
+from moonsheep.forms import MultipleRangeField
+from moonsheep.models import ModelMapper
+from moonsheep.tasks import AbstractTask
 from moonsheep.tests import DummyTask
 from moonsheep.verifiers import equals, OrderedListVerifier
+from moonsheep.views import unpack_post
 
-import json
 
 # TODO: FIXME
 # class PresenterTests(UnitTestCase):
@@ -491,8 +497,51 @@ class VerifierListTest(UnitTestCase):
         # self.assertEquals(result, None)
 
 
-from django.db import models
-from moonsheep.models import ModelMapper
+class MultipleRangeFieldTestCase(UnitTestCase):
+    def setUp(self):
+        self.field = MultipleRangeField()
+
+    def test_single_number(self):
+        self.assertEquals(self.field.clean('1'), ['1'])
+
+    def test_comma_separated_numbers(self):
+        self.assertEquals(self.field.clean('1,2,4'), ['1', '2', '4'])
+
+    def test_dash_separated_numbers(self):
+        self.assertEquals(self.field.clean('1-4'), ['1', '2', '3', '4'])
+
+    def test_various_type_number_ranges(self):
+        self.assertEquals(self.field.clean('1-4,5-6'), ['1', '2', '3', '4', '5', '6'])
+
+    def test_comma_separated_numbers_with_prefixes(self):
+        self.assertEquals(self.field.clean('abc,abc1'), ['abc', 'abc1'])
+
+    # def test_dash_separated_numbers_with_prefixes(self):
+    #     self.assertEquals(self.field.clean('A1-A3'), ['A1', 'A2', 'A3'])
+
+    # def test_various_type_ranges(self):
+    #     self.assertEquals(self.field.clean('a1-a2,1-3'), ['a1', 'a2', '1', '2', '3'])
+
+    def test_useless_range(self):
+        self.assertEquals(self.field.clean('1-1'), ['1'])
+
+    def test_warning_range(self):
+        self.assertEquals(self.field.clean('3-5,4'), ['3', '4', '5'])
+
+    def test_reverse_range_error(self):
+        self.assertRaises(ValidationError, self.field.clean, '5-3')
+
+    def test_wrong_range_format_error(self):
+        self.assertRaises(ValidationError, self.field.clean, '1-3-5')
+
+    # def test_wrong_prefix_format_error(self):
+    #     self.assertRaises(ValidationError, self.field.clean, '1A-1C')
+
+    def test_clean_spaces(self):
+        self.assertEquals(self.field.clean(' 1 -   3'), ['1', '2', '3'])
+
+    def test_clean_wrong_spaces(self):
+        self.assertRaises(ValidationError, self.field.clean, '1 1')
 
 
 class ModelMapperTest(UnitTestCase):
@@ -518,7 +567,8 @@ class ModelMapperTest(UnitTestCase):
         self.assertEquals(dummy.integer, 3)
 
     def test_empty(self):
-        # TODO warning RuntimeWarning: Model 'moonsheep.dummy' was already registered. Reloading models is not advised as it can lead to inconsistencies, most notably with related models.
+        # TODO warning RuntimeWarning: Model 'moonsheep.dummy' was already registered.
+        # Reloading models is not advised as it can lead to inconsistencies, most notably with related models.
         # make dummy a proper test model
         class Dummy(models.Model):
             boolean = models.BooleanField()
