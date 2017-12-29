@@ -40,9 +40,11 @@ class TaskView(FormView):
         4. Otherwise return error suggesting to implement 2 or 3
         :return: path to the template (string) or Django's Form class
         """
-        self.task = self._get_task()
-
-        self._get_form_class_data()
+        try:
+            self.task = self._get_task()
+            self._get_form_class_data()
+        except NoTasksLeft:
+            self.task = None
 
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
@@ -86,10 +88,11 @@ class TaskView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super(TaskView, self).get_context_data(**kwargs)
-        context.update({
-            'presenter': self.task.get_presenter(),
-            'task': self.task,
-        })
+        if self.task:
+            context.update({
+                'presenter': self.task.get_presenter(),
+                'task': self.task,
+            })
         return context
 
     def _get_form_class_data(self):
@@ -129,11 +132,6 @@ class TaskView(FormView):
     def form_valid(self, form):
         self._send_task(form.cleaned_data)
         return super(TaskView, self).form_valid(form)
-
-    def form_invalid(self, form):
-        print('invalid form')
-        print(form.errors)
-        return super(TaskView, self).form_invalid(form)
 
     # End of FormView override
     # ========================
