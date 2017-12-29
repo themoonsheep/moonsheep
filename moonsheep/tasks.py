@@ -1,7 +1,13 @@
 import importlib
+import logging
 import pbclient
 
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
+from .moonsheep_settings import (
+    DEVELOPMENT_MODE
+)
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractTask(object):
@@ -106,7 +112,11 @@ class AbstractTask(object):
         # TODO: 'type' is now reserved key in task params
         # TODO: maybe we should reserve '_type' ?
         info['type'] = ".".join([task.__module__, task.__name__])
-        return pbclient.create_task(self.project_id, info, self.N_ANSWERS)
+
+        if DEVELOPMENT_MODE:
+            logger.info("Skipping task creation because we are in DEVELOPMENT_MODE: " + repr(info))
+        else:
+            return pbclient.create_task(self.project_id, info, self.N_ANSWERS)
 
     @staticmethod
     def klass_from_name(name):
