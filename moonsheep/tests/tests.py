@@ -501,47 +501,56 @@ class MultipleRangeFieldTestCase(UnitTestCase):
     def setUp(self):
         self.field = MultipleRangeField()
 
-    def test_single_number(self):
+    def test_clean_single_number(self):
         self.assertEquals(self.field.clean('1'), ['1'])
 
-    def test_comma_separated_numbers(self):
+    def test_clean_comma_separated_numbers(self):
         self.assertEquals(self.field.clean('1,2,4'), ['1', '2', '4'])
 
-    def test_dash_separated_numbers(self):
+    def test_clean_dash_separated_numbers(self):
         self.assertEquals(self.field.clean('1-4'), ['1', '2', '3', '4'])
 
-    def test_various_type_number_ranges(self):
+    def test_clean_various_type_number_ranges(self):
         self.assertEquals(self.field.clean('1-4,5-6'), ['1', '2', '3', '4', '5', '6'])
 
-    def test_comma_separated_numbers_with_prefixes(self):
+    def test_clean_comma_separated_numbers_with_prefixes(self):
         self.assertEquals(self.field.clean('abc,abc1'), ['abc', 'abc1'])
 
-    # def test_dash_separated_numbers_with_prefixes(self):
-    #     self.assertEquals(self.field.clean('A1-A3'), ['A1', 'A2', 'A3'])
+    def test_clean_dash_separated_numbers_with_prefixes(self):
+        self.assertEquals(self.field.clean('A1-A3'), ['A1', 'A2', 'A3'])
 
-    # def test_various_type_ranges(self):
-    #     self.assertEquals(self.field.clean('a1-a2,1-3'), ['a1', 'a2', '1', '2', '3'])
+    def test_clean_various_type_ranges(self):
+        self.assertEquals(self.field.clean('a1-a2,1-3'), ['a1', 'a2', '1', '2', '3'])
 
-    def test_useless_range(self):
+    def test_clean_useless_range(self):
         self.assertEquals(self.field.clean('1-1'), ['1'])
 
-    def test_warning_range(self):
+    def test_clean_warning_range(self):
         self.assertEquals(self.field.clean('3-5,4'), ['3', '4', '5'])
 
-    def test_reverse_range_error(self):
+    def test_clean_reverse_range_error(self):
         self.assertRaises(ValidationError, self.field.clean, '5-3')
 
-    def test_wrong_range_format_error(self):
+    def test_clean_range_format_error(self):
         self.assertRaises(ValidationError, self.field.clean, '1-3-5')
 
-    # def test_wrong_prefix_format_error(self):
-    #     self.assertRaises(ValidationError, self.field.clean, '1A-1C')
+    def test_clean_prefix_format_error(self):
+        self.assertRaises(ValidationError, self.field.clean, 'A1-C3')
+
+    def test_clean_no_number_range_error(self):
+        self.assertRaises(ValidationError, self.field.clean, 'ABC-CDE')
+
+    def test_clean_postfix_range_error(self):
+        self.assertRaises(ValidationError, self.field.clean, '1A-3A')
 
     def test_clean_spaces(self):
         self.assertEquals(self.field.clean(' 1 -   3'), ['1', '2', '3'])
 
     def test_clean_wrong_spaces(self):
         self.assertRaises(ValidationError, self.field.clean, '1 1')
+
+    def test_clean_too_many_commas(self):
+        self.assertRaises(ValidationError, self.field.clean, ',,')
 
 
 class ModelMapperTest(UnitTestCase):

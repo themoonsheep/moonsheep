@@ -22,22 +22,6 @@ from .moonsheep_settings import (
 from .tasks import AbstractTask
 
 
-class Encoder(json.JSONEncoder):
-    """Create an encoder subclassing JSON.encoder.
-    Make this encoder aware of our classes (e.g. datetime.datetime objects)
-    """
-    def default(self, obj):
-        if isinstance(obj, datetime.date):
-            return obj.isoformat()
-        elif isinstance(obj, decimal.Decimal):
-            # wanted a simple yield str(o) in the next line,
-            # but that would mean a yield on the line with super(...),
-            # which wouldn't work (see my comment below), so...
-            return (str(obj) for obj in [obj])
-        else:
-            return json.JSONEncoder.default(self, obj)
-
-
 class TaskView(FormView):
     # TODO either we should have full template in Moonsheep or have that template in project_template
     template_name = 'task.html'

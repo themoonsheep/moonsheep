@@ -13,70 +13,61 @@ class MultipleRangeField(forms.CharField):
     def to_python(self, value):
         values = []
 
-        # test if spaces don't
+        # Search for invalid space occurrences, i.e. " 1 1, 2-3, 1 1-2"
         no_spaces = value.split(" ")
         while "" in no_spaces:
             no_spaces.remove("")
         for idx, val in enumerate(no_spaces):
             if len(no_spaces) > idx + 1 and re.match("^\d+$", val) and re.match("^\d+$", no_spaces[idx+1]):
-                raise ValidationError("")
+                raise ValidationError("Cannot divide tokens (IDs) by space. Use comma instead.")
+        # Remove spaces
         value = value.replace(" ", "")
+        # Split value in sections divided by comma, i.e. "1", "3-6", "a23", "a1-a6"
         sections = value.split(",")
         for section in sections:
+            # Split ranges in sections
             section_range = section.split("-")
+            # If ranges have more than 2 parts, then raise error, i.e. "1-5-10"
             if len(section_range) > 2:
-                raise ValidationError("Wrong range format")
+                raise ValidationError("Wrong range format.")
+            # Change ranges into lists
             elif len(section_range) == 2:
-                # TODO: include postfixes and prefixes
-                v_start = int(section_range[0])
-                v_end = int(section_range[1])
+                if not section_range[0][-1].isnumeric() or not section_range[1][-1].isnumeric():
+                    raise ValidationError(
+                        "Wrong suffix format. Letters may be used only as prefix in range, i.e. A1-A3."
+                    )
+                # Remove prefixes for range iteration
+                prefix_0 = ""
+                while section_range and not section_range[0][0].isnumeric():
+                    prefix_0 += section_range[0][0]
+                    section_range[0] = section_range[0][1:]
+                prefix_1 = ""
+                while section_range and not section_range[1][0].isnumeric():
+                    prefix_1 += section_range[1][0]
+                    section_range[1] = section_range[1][1:]
+                # Compare prefixes. They must be the same
+                if prefix_0 != prefix_1:
+                    raise ValidationError("Prefixes must be the same, i.e. A1-A3")
+                try:
+                    v_start = int(section_range[0])
+                    v_end = int(section_range[1])
+                except ValueError:
+                    raise ValidationError(
+                        "Wrong suffix format. Letters may be used only as prefix in range, i.e. A1-A3."
+                    )
+                # Check if can be iterated
                 if v_start > v_end:
-                    raise ValidationError("Reverse range")
+                    raise ValidationError("Reverse range. Should be {lower_value}-{greater_value}.")
+                # Iterate, add back prefixes
                 for v in range(v_start, v_end + 1):
-                    if str(v) not in values:
-                        values.append(str(v))
+                    token = prefix_0 + str(v)
+                    if token not in values:
+                        values.append(token)
+            # one element
             elif len(section_range) == 1:
                 if section_range[0] not in values:
                     values.append(section_range[0])
+            # neighbouring commas ",,"
             else:
-                raise ValidationError
+                raise ValidationError("Too many commas - \",,\"")
         return values
-
-
-class RangeWidget(forms.MultiWidget):
-    def __init__(self, widget, *args, **kwargs):
-        widgets = (widget, widget)
-
-        super(RangeWidget, self).__init__(widgets=widgets, *args, **kwargs)
-
-    def decompress(self, value):
-        return value
-
-    def format_output(self, rendered_widgets):
-        widget_context = {'min': rendered_widgets[0], 'max': rendered_widgets[1]}
-        return render_to_string('widgets/range_widget.html', widget_context)
-
-
-class RangeField(forms.MultiValueField):
-    default_error_messages = {
-        'invalid_start': _(u'Enter a valid start value.'),
-        'invalid_end': _(u'Enter a valid end value.'),
-    }
-
-    def __init__(self, field_class, widget=forms.TextInput, *args, **kwargs):
-        if 'initial' not in kwargs:
-            kwargs['initial'] = ['', '']
-
-        fields = (field_class(), field_class())
-
-        super(RangeField, self).__init__(
-                fields=fields,
-                widget=RangeWidget(widget),
-                *args, **kwargs
-                )
-
-    def compress(self, data_list):
-        if data_list:
-            return [self.fields[0].clean(data_list[0]), self.fields[1].clean(data_list[1])]
-
-        return None
