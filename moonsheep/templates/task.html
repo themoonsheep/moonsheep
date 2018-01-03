@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MoonSheep default task template</title>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css" integrity="sha384-Zug+QiDoJOrZ5t4lssLdxGhVrurbmBWopoEl+M6BdEfwnCJZtKxi1KgxUyJq13dy" crossorigin="anonymous">
+  <link rel="stylesheet" href="../static/css/style.css">
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js" integrity="sha384-a5N7Y/aK3qNeh15eJKGWxsqtnX/wWdSZSKp+81YjTmS15nvnvxKHuzaWwXHDli+4" crossorigin="anonymous"></script>
+
+</head>
+<body>
+  <div class="container" id="ms-content">
+    <div class="row justify-content-around">
+      <div class="col-3">
+        <img class=img-fluid" id="ms-logo" src="../static/imgs/moonsheep-logo-transparent.png" alt="moonsheep-logo" />
+      </div>
+      <div class="col-6">
+        {% if error %}
+        <h2 id="ms-message-status">Ooooops... something's wrong!</h2>
+        {% else %}
+        <h2>It works!</h2>
+        {% endif %}
+      </div>
+    </div>
+    <div class="row justify-content-md-center">
+      <div class="col-8">
+        <h3>{{ message }}</h3>
+        {% include template %}
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

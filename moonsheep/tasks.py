@@ -8,18 +8,26 @@ class AbstractTask(object):
     N_ANSWERS = 1
 
     def __init__(self, **kwargs):
-        self.url = kwargs.get('info').get('url')
-        self.data = kwargs.get('info')
+        info = kwargs.get('info')
+        self.url = None
+        self.data = None
 
-        # to override templates
-        if 'task_form' in kwargs.get('info'):
-            self.task_form = AbstractTask.klass_from_name(kwargs.get('info').get('task_form'))
-        if 'task_form_template' in kwargs.get('info'):
-            self.task_form_template = kwargs.get('info').get('task_form_template')
-        # if type == "pybossa_task"
+        self.task_form = None
+        self.task_form_template = None
+
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
         self.verified = False
+        if info:
+            self.url = info.get('url')
+            self.data = info.get('info')
+
+            # to override templates
+            if 'task_form' in info:
+                self.task_form = AbstractTask.klass_from_name(info.get('task_form'))
+            if 'task_form_template' in info:
+                self.task_form_template = info.get('task_form_template')
+            # if type == "pybossa_task"
 
     def get_presenter(self):
         """
@@ -37,9 +45,10 @@ class AbstractTask(object):
         """
         # ^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$
         # http://(www\.)?vimeo\.com/(\d+)
+        url = getattr(self, 'url')
         return {
             'template': 'presenters/pdf.html',
-            'url': self.url
+            'url': url
         }
 
     def verify_and_save(self, taskruns_list):

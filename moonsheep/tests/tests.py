@@ -3,18 +3,17 @@ import json
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.http.request import QueryDict
-from django.test import TestCase as DjangoTestCase, Client, override_settings
+from django.test import TestCase as DjangoTestCase, Client, RequestFactory, override_settings
 
 from unittest import TestCase as UnitTestCase
 from unittest.mock import Mock, MagicMock, patch, sentinel, call
 
-from moonsheep.exceptions import PresenterNotDefined
+from moonsheep.exceptions import PresenterNotDefined, TaskWithNoTemplateNorForm, NoTasksLeft
 from moonsheep.forms import MultipleRangeField
 from moonsheep.models import ModelMapper
 from moonsheep.tasks import AbstractTask
-from moonsheep.tests import DummyTask
 from moonsheep.verifiers import equals, OrderedListVerifier
-from moonsheep.views import unpack_post
+from moonsheep.views import unpack_post, TaskView
 
 
 # TODO: FIXME
@@ -79,6 +78,244 @@ from moonsheep.views import unpack_post
 
 
 # TODO test error handling for Tasks with no form and no template
+
+# views.py
+
+def setup_view(view, request, *args, **kwargs):
+    """
+    Mimic as_view() returned callable, but returns view instance.
+    args and kwargs are the same you would pass to ``reverse()``
+    """
+    view.request = request
+    view.args = args
+    view.kwargs = kwargs
+    return view
+
+
+class TaskViewTest(DjangoTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.fake_path = '/'
+        self.redirect_path = 'http://redirected'
+        self.task_data = {
+            'info': {
+                'url': 'http://example.com',
+                'task_template': 'task_template.html',
+                'task_form_template': 'task_form_template.html',
+                'task_form': 'myapp.forms.TaskForm'
+            }
+        }
+        self.post_data = {
+            '_project_id': 1,
+            '_task_id': 1
+        }
+
+    @patch('moonsheep.views.TaskView._get_task')
+    @patch('moonsheep.views.TaskView._get_form_class_data')
+    @patch('moonsheep.views.TaskView.get_context_data')
+    def test_get(
+            self,
+            _get_task_mock: MagicMock,
+            _get_form_class_data_mock: MagicMock,
+            get_context_data_mock: MagicMock
+    ):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request, **self.task_data)
+        response = view.get(request)
+        self.assertEqual(response.status_code, 200)
+        _get_task_mock.assert_any_call()
+        _get_form_class_data_mock.assert_any_call()
+        get_context_data_mock.assert_any_call()
+
+    # TODO: FIXME
+    # @patch('moonsheep.views.TaskView._get_task')
+    # @patch('moonsheep.views.TaskView._get_form_class_data')
+    # @patch('moonsheep.views.TaskView.get_context_data')
+    # def test_get_no_tasks(
+    #         self,
+    #         _get_task_mock: MagicMock,
+    #         _get_form_class_data_mock: MagicMock,
+    #         get_context_data_mock: MagicMock
+    # ):
+    #     _get_task_mock.side_effect = NoTasksLeft
+    #     request = self.factory.get(self.fake_path)
+    #     view = TaskView()
+    #     view = setup_view(view, request, **self.task_data)
+    #     view.task = AbstractTask()
+    #     response = view.get(request)
+    #     self.assertEqual(view.task, None)
+    #     self.assertEqual(response.status_code, 200)
+    #     _get_task_mock.assert_any_call()
+    #     _get_form_class_data_mock.assert_any_call()
+    #     get_context_data_mock.assert_any_call()
+
+    # TODO: FIXME
+    # @patch('moonsheep.views.TaskView._get_task')
+    # @patch('moonsheep.views.TaskView._get_form_class_data')
+    # @patch('moonsheep.views.TaskView.get_form')
+    # @patch('moonsheep.views.TaskView.form_valid')
+    # def test_post(
+    #         self,
+    #         _get_task_mock: MagicMock,
+    #         _get_form_class_data_mock: MagicMock,
+    #         get_form_mock: MagicMock,
+    #         form_valid_mock: MagicMock
+    # ):
+    #     request = self.factory.post(self.fake_path, self.post_data)
+    #     view = TaskView()
+    #     view = setup_view(view, request, **self.task_data)
+    #     view.post(request)
+    #     _get_task_mock.assert_called_once_with(
+    #         new=False,
+    #         project_id=self.post_data.get('_project_id'),
+    #         task_id=self.post_data.get('_task_id')
+    #     )
+    #     _get_form_class_data_mock.assert_any_call()
+    #     get_form_mock.assert_any_call()
+    #     # form_valid_mock.assert_any_call()
+
+    # TODO: FIXME
+    # @patch('moonsheep.views.TaskView._get_task')
+    # @patch('moonsheep.views.TaskView._get_form_class_data')
+    # @patch('moonsheep.views.TaskView.get_form')
+    # @patch('moonsheep.views.TaskView.form_invalid')
+    # def test_post_invalid_form(
+    #         self,
+    #         _get_task_mock: MagicMock,
+    #         _get_form_class_data_mock: MagicMock,
+    #         get_form_mock: MagicMock,
+    #         form_invalid_mock: MagicMock
+    # ):
+    #     mock = MagicMock
+    #     attrs = {'is_valid.return_value': False}
+    #     mock.configure_mock(attrs)
+    #     get_form_mock.return_value = mock
+    #
+    #     request = self.factory.post(self.fake_path, self.post_data)
+    #     view = TaskView()
+    #     view = setup_view(view, request, **self.task_data)
+    #     view.post(request)
+    #
+    #     _get_task_mock.assert_any_call()
+    #     _get_form_class_data_mock.assert_any_call()
+    #     get_form_mock.assert_any_call()
+
+    @patch('moonsheep.views.TaskView._get_task')
+    @patch('moonsheep.views.TaskView._get_form_class_data')
+    @patch('moonsheep.views.TaskView.get_form')
+    @patch('moonsheep.views.unpack_post')
+    @patch('moonsheep.views.TaskView._send_task')
+    @patch('moonsheep.views.TaskView.get_success_url')
+    def test_post_no_form(
+            self,
+            _get_task_mock: MagicMock,
+            _get_form_class_data_mock: MagicMock,
+            get_form_mock: MagicMock,
+            unpack_post_mock: MagicMock,
+            _send_task_mock: MagicMock,
+            get_success_url_mock: MagicMock
+    ):
+        get_form_mock.return_value = None
+        get_success_url_mock.return_value = self.redirect_path
+        request = self.factory.post(self.fake_path, self.post_data)
+        view = TaskView()
+        view = setup_view(view, request, **self.task_data)
+        response = view.post(request)
+        self.assertEqual(response.status_code, 302)
+
+    def test_post_no_task_id(self):
+        del self.post_data['_task_id']
+        request = self.factory.post(self.fake_path, self.post_data)
+        view = TaskView()
+        view = setup_view(view, request, **self.task_data)
+        response = view.post(request)
+        self.assertEqual(response.status_code, 400)
+
+    def test_post_no_project_id(self):
+        del self.post_data['_project_id']
+        request = self.factory.post(self.fake_path, self.post_data)
+        view = TaskView()
+        view = setup_view(view, request, **self.task_data)
+        response = view.post(request)
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_context_data(self):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        view.task = AbstractTask()
+        context = view.get_context_data()
+        self.assertIsInstance(context['task'], AbstractTask)
+        self.assertEqual(context['task'], view.task)
+
+    def test_get_context_data_no_task(self):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        context = view.get_context_data()
+        self.assertTrue(context['error'])
+        self.assertEqual(context['message'], 'Broker returned no tasks')
+        self.assertEqual(context['template'], 'error-messages/no-tasks.html')
+
+    @patch('moonsheep.tasks.AbstractTask.klass_from_name')
+    def test_get_form_class_data(self, klass_from_name_mock: MagicMock):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        view.task = AbstractTask(**self.task_data)
+        view._get_form_class_data()
+        self.assertEqual(view.template_name, self.task_data.get('info').get('template_name'))
+        self.assertEqual(view.task.task_form_template, self.task_data.get('info').get('task_form_template'))
+        klass_from_name_mock.assert_called_once_with(self.task_data.get('info').get('task_form'))
+
+    def test_get_form_class_data_no_template_nor_form(self):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        self.assertRaises(TaskWithNoTemplateNorForm, view._get_form_class_data)
+
+    def test_get_form_class(self):
+        # TODO
+        pass
+
+    def test_get_form(self):
+        pass
+
+    def test_get_form_no_form_class(self):
+        pass
+
+    def test_form_valid(self):
+        pass
+
+    def test_get_task(self):
+        pass
+
+    def test_get_new_task(self):
+        pass
+
+    def test_get_random_mocked_task_data(self):
+        pass
+
+    def test_get_random_pybossa_task(self):
+        pass
+
+    def test_send_task(self):
+        pass
+
+    def test_send_pybossa_task(self):
+        pass
+
+
+class WebhookTaskRunViewTest(UnitTestCase):
+    def test_dispatch(self):
+        pass
+
+    def test_get(self):
+        pass
+
+    def test_post(self):
+        pass
 
 
 class UnpackPostTest(UnitTestCase):
@@ -335,8 +572,8 @@ class TaskProcessingTests(DjangoTestCase):
         pass
 
     def test_create_task_instance(self):
-        task = AbstractTask.create_task_instance('moonsheep.tests.DummyTask', info={'url': 'https://bla.pl'})
-        self.assertEquals(task.__class__, DummyTask)
+        task = AbstractTask.create_task_instance('moonsheep.tasks.AbstractTask', info={'url': 'https://bla.pl'})
+        self.assertIsInstance(task, AbstractTask)
 
     @patch('moonsheep.verifiers.DEFAULT_BASIC_VERIFIER_METHOD')
     def test_verification_default_equals_mock(self, equals_mock: MagicMock):

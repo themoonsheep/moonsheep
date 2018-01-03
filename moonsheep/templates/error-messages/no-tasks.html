@@ -1,0 +1,39 @@
+This error was caused because tasks broker returned no tasks. You can either configure <code>pybossa</code>
+<strong>or</strong> prepare your own sample tasks and provide them in <code>random broker</code>.
+
+<ol>
+  <li>
+    Configure pybossa
+  </li>
+  <ol>
+    <li>
+      Launch locally <a href="http://docs.pybossa.com/">pybossa</a> or use prepared endpoint
+      (i.e. <a href="https://crowdcrafting.org/">crowdcrafting</a>)
+    </li>
+    <li>in settings.py:</li>
+    <pre><code>
+      MOONSHEEP_TASK_SOURCE = 'pybossa'
+      PYBOSSA_URL = 'http://localhost:&#123;&#123;pybossa-port&#125;&#125;/'
+      PYBOSSA_PROJECT_ID = 1
+      PYBOSSA_API_KEY = os.environ.get('PYBOSSA_API_KEY')
+    </code></pre>
+  </ol>
+  <strong>or</strong>
+  <li>
+    Provide random tasks
+  </li>
+  <ol>
+    <li>
+      Implement your tasks
+    </li>
+    <li>
+      Provide them to moonsheep random tasks (? dunno)
+    </li>
+    <li>
+      in settings.py:
+    </li>
+    <pre><code>
+      MOONSHEEP_TASK_SOURCE = 'random'
+    </code></pre>
+  </ol>
+</ol>

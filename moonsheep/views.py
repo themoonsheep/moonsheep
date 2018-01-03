@@ -1,5 +1,3 @@
-import datetime
-import decimal
 import dpath.util
 import json
 import pbclient
@@ -89,24 +87,26 @@ class TaskView(FormView):
     def get_context_data(self, **kwargs):
         context = super(TaskView, self).get_context_data(**kwargs)
         if self.task:
+            context['task'] = self.task
+            context['presenter'] = getattr(self.task, 'get_presenter')
+        else:
             context.update({
-                'presenter': self.task.get_presenter(),
-                'task': self.task,
+                'error': True,
+                'message': 'Broker returned no tasks',
+                'template': 'error-messages/no-tasks.html'
             })
         return context
 
     def _get_form_class_data(self):
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
-        if hasattr(self.task, 'task_template'):
-            self.template_name = self.task.task_template
 
-        if hasattr(self.task, 'task_form_template'):
-            self.form_template_name = self.task.task_form_template
-        if hasattr(self.task, 'task_form'):
-            self.form_class = self.task.task_form
+        self.template_name = getattr(self.task, 'task_template', None)
 
-        if self.form_class is None and self.form_template_name is None:
+        self.form_template_name = getattr(self.task, 'task_form_template', None)
+        self.form_class = getattr(self.task, 'task_form', None)
+
+        if not self.form_class and not self.form_template_name:
             raise TaskWithNoTemplateNorForm(self.task.__class__)
 
     # =====================
