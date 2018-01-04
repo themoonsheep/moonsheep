@@ -8,12 +8,12 @@ from django.http.request import QueryDict
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import FormView
+from django.views.generic import FormView, TemplateView
 
 from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskWithNoTemplateNorForm
 )
-from .moonsheep_settings import (
+from .settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
 )
@@ -241,8 +241,24 @@ class TaskView(FormView):
         return pbclient.create_taskrun(PYBOSSA_PROJECT_ID, self.task.id, data, user_ip)
 
 
+class AdminView(TemplateView):
+    template_name = 'views/admin.html'
+
+
+class NewTaskView(TemplateView):
+    template_name = 'views/new-task.html'
+
+
+class TaskListView(TemplateView):
+    template_name = 'views/stats.html'
+
+
+class ManualVerificationView(TemplateView):
+    template_name = 'views/manual-verification.html'
+
+
 class WebhookTaskRunView(View):
-    # TODO: instead of csrf, IP white list
+    # TODO: instead of csrf exempt, IP white list
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super(WebhookTaskRunView, self).dispatch(request, *args, **kwargs)

@@ -3,6 +3,7 @@ body {
 
 #ms-content {
   background: #ffffff;
+  min-height: 100%;
   height: 100%;
   padding: 30px; }
   #ms-content .row:first-child {
@@ -16,4 +17,4 @@ body {
 #ms-message-status {
   padding: 50px 0; }
 
-/*# sourceMappingURL=style.css.map */
+/*# sourceMappingURL=moonsheep_style.css.map */

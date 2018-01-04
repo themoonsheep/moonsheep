@@ -1,0 +1,80 @@
+{% extends "moonsheep_base.html" %}
+
+{% load static %}
+
+{% block content %}
+<div class="container" id="ms-content">
+  <div class="row justify-content-around">
+    <div class="col-3">
+      <a href="{% url "ms-admin" %}">
+        <img class=img-fluid" id="ms-logo" src="{% static "imgs/moonsheep-logo-transparent.png" %}" alt="moonsheep-logo" />
+      </a>
+    </div>
+    <div class="col-6">
+      <h2 id="ms-message-status">Stats</h2>
+    </div>
+  </div>
+  <div class="row justify-content-md-center">
+    <div class="col-8">
+      <h4>Overall stats</h4>
+      <dl class="row">
+        <dt class="col-sm-5">Verified tasks</dt>
+        <dd class="col-sm-7">12</dd>
+        <dt class="col-sm-5">Transcripted documents</dt>
+        <dd class="col-sm-7">0</dd>
+        <dt class="col-sm-5">Redundancy</dt>
+        <dd class="col-sm-7">3</dd>
+      </dl>
+      <h4 class="mt-5">Report stats</h4>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <th>report</th>
+            <th>overall (%)</th>
+            <th>task 1 (%)</th>
+            <th>task 2 (%)</th>
+            <th>task 3 (%)</th>
+          </thead>
+          <tbody>
+            <tr>
+              <td>report 1</td>
+              <td>? <small>(11/?)</small></td>
+              <td>100% <small>(5/5)</small></td>
+              <td>50% <small>(4/8)</small></td>
+              <td>? <small>(2/?)</small></td>
+            </tr>
+            <tr>
+              <td>report 2</td>
+              <td>28% <small>(71/251)</small></td>
+              <td>100% <small>(7/7)</small></td>
+              <td>100% <small>(54/54)</small></td>
+              <td>5% <small>(10/190)</small></td>
+            </tr>
+            <tr>
+              <td>report 3</td>
+              <td>? <small>(0/?)</small></td>
+              <td>0% <small>(0/4)</small></td>
+              <td>? <small>(0/?)</small></td>
+              <td>? <small>(0/?)</small></td>
+            </tr>
+            <tr>
+              <td>report 4</td>
+              <td>? <small>(11/?)</small></td>
+              <td>10% <small>(2/20)</small></td>
+              <td>? <small>(7/?)</small></td>
+              <td>? <small>(2/?)</small></td>
+            </tr>
+            <tr>
+              <td>report 5</td>
+              <td>? <small>(9/?)</small></td>
+              <td>100% <small>(3/3)</small></td>
+              <td>25% <small>(6/24)</small></td>
+              <td>? <small>(0/?)</small></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
