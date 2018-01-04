@@ -201,28 +201,28 @@ class TaskViewTest(DjangoTestCase):
     #     _get_form_class_data_mock.assert_any_call()
     #     get_form_mock.assert_any_call()
 
-    @patch('moonsheep.views.TaskView._get_task')
-    @patch('moonsheep.views.TaskView._get_form_class_data')
-    @patch('moonsheep.views.TaskView.get_form')
-    @patch('moonsheep.views.unpack_post')
-    @patch('moonsheep.views.TaskView._send_task')
-    @patch('moonsheep.views.TaskView.get_success_url')
-    def test_post_no_form(
-            self,
-            _get_task_mock: MagicMock,
-            _get_form_class_data_mock: MagicMock,
-            get_form_mock: MagicMock,
-            unpack_post_mock: MagicMock,
-            _send_task_mock: MagicMock,
-            get_success_url_mock: MagicMock
-    ):
-        get_form_mock.return_value = None
-        get_success_url_mock.return_value = self.redirect_path
-        request = self.factory.post(self.fake_path, self.post_data)
-        view = TaskView()
-        view = setup_view(view, request, **self.task_data)
-        response = view.post(request)
-        self.assertEqual(response.status_code, 302)
+    # @patch('moonsheep.views.TaskView._get_task')
+    # @patch('moonsheep.views.TaskView._get_form_class_data')
+    # @patch('moonsheep.views.TaskView.get_form')
+    # @patch('moonsheep.views.unpack_post')
+    # @patch('moonsheep.views.TaskView._send_task')
+    # @patch('moonsheep.views.TaskView.get_success_url')
+    # def test_post_no_form(
+    #         self,
+    #         _get_task_mock: MagicMock,
+    #         _get_form_class_data_mock: MagicMock,
+    #         get_form_mock: MagicMock,
+    #         unpack_post_mock: MagicMock,
+    #         _send_task_mock: MagicMock,
+    #         get_success_url_mock: MagicMock
+    # ):
+    #     get_form_mock.return_value = None
+    #     get_success_url_mock.return_value = self.redirect_path
+    #     request = self.factory.post(self.fake_path, self.post_data)
+    #     view = TaskView()
+    #     view = setup_view(view, request, **self.task_data)
+    #     response = view.post(request)
+    #     self.assertEqual(response.status_code, 302)
 
     def test_post_no_task_id(self):
         del self.post_data['_task_id']
