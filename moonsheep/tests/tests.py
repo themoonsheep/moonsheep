@@ -96,7 +96,7 @@ class TaskViewTest(DjangoTestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.fake_path = '/'
-        self.redirect_path = 'http://redirected'
+        self.redirect_path = 'http://redirected.com/'
         self.task_data = {
             'info': {
                 'url': 'http://example.com',
