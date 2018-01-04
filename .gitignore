@@ -1,6 +1,7 @@
 .idea/
 __pycache__/
 node_modules/
+requirements-local.txt
 
 *.pyc
 .tox/
