@@ -71,7 +71,7 @@ class TaskView(FormView):
         form = self.get_form()
 
         # no form defined in the task
-        if not form:
+        if form is None:
             data = unpack_post(request.POST)
             # TODO what to do if we have forms defined? is Django nested formset a way to go?
             # Check https://stackoverflow.com/questions/20894629/django-nested-inline-formsets
@@ -88,7 +88,10 @@ class TaskView(FormView):
         context = super(TaskView, self).get_context_data(**kwargs)
         if self.task:
             context['task'] = self.task
-            context['presenter'] = getattr(self.task, 'get_presenter')
+            try:
+                context['presenter'] = self.task.get_presenter()
+            except TypeError:
+                pass
         else:
             context.update({
                 'error': True,

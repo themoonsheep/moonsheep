@@ -10,3 +10,6 @@ DATABASES = {
         'NAME': ':memory:',
     }
 }
+
+MOONSHEEP_TASK_SOURCE = ''
+MOONSHEEP_DEVELOPMENT_MODE = False
