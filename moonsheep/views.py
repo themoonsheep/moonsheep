@@ -104,8 +104,11 @@ class TaskView(FormView):
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
 
-        # TODO: which parameters are obligatory?
-        self.template_name = getattr(self.task, 'task_template', None)
+        # TODO discuss how we build it on Monday (discuss two aproaches and how we approach layouts)
+        # TODO And the thing that we don't want templates in Moonsheep
+        # Overriding template
+        if hasattr(self.task, 'task_template'):
+            self.template_name = self.task.task_template
 
         self.form_template_name = getattr(self.task, 'task_form_template', None)
         self.form_class = getattr(self.task, 'task_form', None)
