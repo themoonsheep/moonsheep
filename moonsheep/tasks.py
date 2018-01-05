@@ -16,14 +16,14 @@ class AbstractTask(object):
     def __init__(self, **kwargs):
         info = kwargs.get('info')
         self.url = None
-        self.data = None
+        self.data = {}
 
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
         self.verified = False
         if info:
             self.url = info.get('url')
-            self.data = info.get('info')
+            self.data = info.get('info', {})
 
             # to override templates
             if 'task_form' in info:
