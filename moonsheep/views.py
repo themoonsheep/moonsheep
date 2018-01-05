@@ -104,12 +104,13 @@ class TaskView(FormView):
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
 
+        # TODO: which parameters are obligatory?
         self.template_name = getattr(self.task, 'task_template', None)
 
         self.form_template_name = getattr(self.task, 'task_form_template', None)
         self.form_class = getattr(self.task, 'task_form', None)
 
-        if not self.form_class and not self.form_template_name:
+        if not self.form_template_name and not self.form_class:
             raise TaskWithNoTemplateNorForm(self.task.__class__)
 
     # =====================
@@ -196,7 +197,7 @@ class TaskView(FormView):
 
         default_params = {
             'info': {
-                "url": "http://sccg.sk/~cernekova/Benesova_Digital%20Image%20Processing%20Lecture%20Objects%20tracking%20&%20motion%20detection.pdf",
+                "url": "https://nazk.gov.ua/sites/default/files/docs/2017/3/3_kv/2/Agrarna_partija/3%20%EA%E2%E0%F0%F2%E0%EB%202017%20%D6%C0%20%C0%CF%D3%20%97%20%E7%E0%F2%E5%F0%F2%E8%E9.pdf",
                 "type": task_type,
             },
             'id': task_type,

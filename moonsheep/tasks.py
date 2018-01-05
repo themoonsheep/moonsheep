@@ -18,9 +18,6 @@ class AbstractTask(object):
         self.url = None
         self.data = None
 
-        self.task_form = None
-        self.task_form_template = None
-
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
         self.verified = False
