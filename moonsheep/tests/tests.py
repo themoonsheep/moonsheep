@@ -893,6 +893,8 @@ class MultipleRangeFieldTestCase(UnitTestCase):
         self.assertRaises(ValidationError, self.field.clean, 'ABC-CDE')
 
     def test_clean_postfix_range_error(self):
+        # TODO it happens in Opora, with suffix going down: 5820345SB-5820336SB
+        # page 46 on https://nazk.gov.ua/sites/default/files/docs/2017/3/3_kv/2/Agrarna_partija/3%20%EA%E2%E0%F0%F2%E0%EB%202017%20%D6%C0%20%C0%CF%D3%20%97%20%E7%E0%F2%E5%F0%F2%E8%E9.pdf
         self.assertRaises(ValidationError, self.field.clean, '1A-3A')
 
     def test_clean_spaces(self):
