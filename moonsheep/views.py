@@ -109,8 +109,8 @@ class TaskView(FormView):
         self.form_template_name = getattr(self.task, 'task_form_template', None)
         self.form_class = getattr(self.task, 'task_form', None)
 
-        if not self.form_class and not self.form_template_name:
-            raise TaskWithNoTemplateNorForm(self.task.__class__)
+        # if not self.form_class and not self.form_template_name:
+        #     raise TaskWithNoTemplateNorForm(self.task.__class__)
 
     # =====================
     # Override FormView to adapt for a case when user hasn't defined form for a given task
