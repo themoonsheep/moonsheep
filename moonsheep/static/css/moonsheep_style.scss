@@ -1,0 +1,24 @@
+body {
+  background: #efefef;
+}
+
+#ms-content {
+  background: #ffffff;
+  min-height: 100%;
+  height: 100%;
+  padding: 30px;
+
+  .row:first-child {
+    padding-bottom: 30px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #dedede;
+  }
+}
+
+#ms-logo {
+  max-width: 250px;
+}
+
+#ms-message-status {
+  padding: 50px 0;
+}

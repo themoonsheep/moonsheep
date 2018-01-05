@@ -1,0 +1,45 @@
+{% extends "moonsheep_base.html" %}
+
+{% load static %}
+
+{% block content %}
+<div class="container" id="ms-content">
+  <div class="row justify-content-around">
+    <div class="col-3">
+      <a href="{% url "ms-admin" %}">
+        <img class=img-fluid" id="ms-logo" src="{% static "imgs/moonsheep-logo-transparent.png" %}" alt="moonsheep-logo" />
+      </a>
+    </div>
+    <div class="col-6">
+      <h2 id="ms-message-status">New document</h2>
+    </div>
+  </div>
+  <div class="row justify-content-md-center">
+    <div class="col-8">
+      <h3>Import documents</h3>
+      <h4 class="mt-5">via URL</h4>
+      <form action="#" method="post" class="form-inline">
+        {% csrf_token %}
+        <div class="form-group mx-sm-5">
+          <label for="documentURL">Document URL</label>
+        </div>
+        <div class="form-group">
+          <input id="documentURL" type="text" class="form-control">
+        </div>
+        <div class="form-group">
+          <button class="btn btn-success" type="submit">Submit</button>
+        </div>
+      </form>
+      <h4 class="mt-5">via importer</h4>
+      <button class="btn btn-lg">FTP</button>
+      <button class="btn btn-lg">HTTP</button>
+      <h3 class="mt-5">Loaded documents</h3>
+      <ul>
+        <li>
+          <a href="#">#</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

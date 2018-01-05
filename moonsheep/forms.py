@@ -2,9 +2,6 @@ import re
 
 from django import forms
 from django.core.validators import RegexValidator, ValidationError
-from django.template.loader import render_to_string
-from django.forms.fields import EMPTY_VALUES
-from django.utils.translation import ugettext as _
 
 
 class MultipleRangeField(forms.CharField):

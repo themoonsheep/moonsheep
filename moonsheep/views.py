@@ -1,5 +1,3 @@
-import datetime
-import decimal
 import dpath.util
 import json
 import pbclient
@@ -10,12 +8,12 @@ from django.http.request import QueryDict
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import FormView
+from django.views.generic import FormView, TemplateView
 
 from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskWithNoTemplateNorForm
 )
-from .moonsheep_settings import (
+from .settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
 )
@@ -73,7 +71,7 @@ class TaskView(FormView):
         form = self.get_form()
 
         # no form defined in the task
-        if not form:
+        if form is None:
             data = unpack_post(request.POST)
             # TODO what to do if we have forms defined? is Django nested formset a way to go?
             # Check https://stackoverflow.com/questions/20894629/django-nested-inline-formsets
@@ -89,24 +87,29 @@ class TaskView(FormView):
     def get_context_data(self, **kwargs):
         context = super(TaskView, self).get_context_data(**kwargs)
         if self.task:
+            context['task'] = self.task
+            try:
+                context['presenter'] = self.task.get_presenter()
+            except TypeError:
+                pass
+        else:
             context.update({
-                'presenter': self.task.get_presenter(),
-                'task': self.task,
+                'error': True,
+                'message': 'Broker returned no tasks',
+                'template': 'error-messages/no-tasks.html'
             })
         return context
 
     def _get_form_class_data(self):
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
-        if hasattr(self.task, 'task_template'):
-            self.template_name = self.task.task_template
 
-        if hasattr(self.task, 'task_form_template'):
-            self.form_template_name = self.task.task_form_template
-        if hasattr(self.task, 'task_form'):
-            self.form_class = self.task.task_form
+        self.template_name = getattr(self.task, 'task_template', None)
 
-        if self.form_class is None and self.form_template_name is None:
+        self.form_template_name = getattr(self.task, 'task_form_template', None)
+        self.form_class = getattr(self.task, 'task_form', None)
+
+        if not self.form_class and not self.form_template_name:
             raise TaskWithNoTemplateNorForm(self.task.__class__)
 
     # =====================
@@ -238,8 +241,24 @@ class TaskView(FormView):
         return pbclient.create_taskrun(PYBOSSA_PROJECT_ID, self.task.id, data, user_ip)
 
 
+class AdminView(TemplateView):
+    template_name = 'views/admin.html'
+
+
+class NewTaskView(TemplateView):
+    template_name = 'views/new-task.html'
+
+
+class TaskListView(TemplateView):
+    template_name = 'views/stats.html'
+
+
+class ManualVerificationView(TemplateView):
+    template_name = 'views/manual-verification.html'
+
+
 class WebhookTaskRunView(View):
-    # TODO: instead of csrf, IP white list
+    # TODO: instead of csrf exempt, IP white list
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         return super(WebhookTaskRunView, self).dispatch(request, *args, **kwargs)
