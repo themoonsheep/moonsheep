@@ -5,7 +5,7 @@ from django.core.validators import RegexValidator, ValidationError
 
 
 class MultipleRangeField(forms.CharField):
-    default_validators = [RegexValidator(regex="[\w\d]+(-[\w\d]+)?(,[\w\d]+(-[\w\d]+)?)*")]
+    default_validators = [RegexValidator(regex="[\w\d]+[\w]?(-[\w\d]+[\w]?)?(,[\w\d]+[\w]?(-[\w\d]+[\w]?)?)*")]
 
     def to_python(self, value):
         values = []
