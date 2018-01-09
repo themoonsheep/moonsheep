@@ -17,6 +17,7 @@ If set Moonsheep won't communicate with PyBossa and will:
    won't test cross-checking as there is going to be only one entry, but will allow to test the whole flow  
 """
 DEVELOPMENT_MODE = getattr(settings, 'MOONSHEEP_DEVELOPMENT_MODE', False)
+BASE_TASK = getattr(settings, 'MOONSHEEP_BASE_TASK', None)
 
 # pybossa endpoints
 DEFAULT_PYBOSSA_URL = 'http://localhost:5000'

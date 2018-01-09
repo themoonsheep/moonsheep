@@ -5,15 +5,18 @@ import re
 
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.http.request import QueryDict
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView
 
 from .exceptions import (
-    PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskWithNoTemplateNorForm
+    PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
+from .forms import NewTaskForm
 from .settings import (
+    BASE_TASK,
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
 )
@@ -21,9 +24,6 @@ from .tasks import AbstractTask
 
 
 class TaskView(FormView):
-    # TODO either we should have full template in Moonsheep or have that template in project_template
-    template_name = 'task.html'
-    form_template_name = None
     task = None
     form_class = None
 
@@ -40,9 +40,10 @@ class TaskView(FormView):
         """
         try:
             self.task = self._get_task()
-            self._get_form_class_data()
+            self.initialize_task_data()
         except NoTasksLeft:
             self.task = None
+            self.template_name = 'views/message.html'
 
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
@@ -67,7 +68,7 @@ class TaskView(FormView):
             task_id=request.POST['_task_id']
         )
 
-        self._get_form_class_data()
+        self.initialize_task_data()
         form = self.get_form()
 
         # no form defined in the task
@@ -100,21 +101,18 @@ class TaskView(FormView):
             })
         return context
 
-    def _get_form_class_data(self):
+    def initialize_task_data(self):
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
 
-        # TODO discuss how we build it on Monday (discuss two aproaches and how we approach layouts)
-        # TODO And the thing that we don't want templates in Moonsheep
         # Overriding template
-        if hasattr(self.task, 'task_template'):
-            self.template_name = self.task.task_template
+        if hasattr(self.task, 'template_name'):
+            self.template_name = self.task.template_name
 
-        self.form_template_name = getattr(self.task, 'task_form_template', None)
         self.form_class = getattr(self.task, 'task_form', None)
 
-        if not self.form_template_name and not self.form_class:
-            raise TaskWithNoTemplateNorForm(self.task.__class__)
+        if not self.template_name:
+            raise TaskMustSetTemplate(self.task.__class__)
 
     # =====================
     # Override FormView to adapt for a case when user hasn't defined form for a given task
@@ -249,8 +247,27 @@ class AdminView(TemplateView):
     template_name = 'views/admin.html'
 
 
-class NewTaskView(TemplateView):
+class NewTaskFormView(FormView):
     template_name = 'views/new-task.html'
+    form_class = NewTaskForm
+
+    def get_success_url(self):
+        return reverse('ms-new-task')
+
+    def form_valid(self, form):
+        import pbclient
+        from moonsheep.settings import PYBOSSA_BASE_URL, PYBOSSA_API_KEY
+        pbclient.set('endpoint', PYBOSSA_BASE_URL)
+        pbclient.set('api_key', PYBOSSA_API_KEY)
+        pbclient.create_task(
+            project_id=PYBOSSA_PROJECT_ID,
+            info={
+                'type': BASE_TASK,
+                'url': form.cleaned_data.get('url'),
+            },
+            n_answers=1
+        )
+        return super(NewTaskFormView, self).form_valid(form)
 
 
 class TaskListView(TemplateView):

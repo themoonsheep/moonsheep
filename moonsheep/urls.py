@@ -15,12 +15,12 @@ Including another URLconf
 """
 from django.conf.urls import url
 
-from .views import AdminView, NewTaskView, TaskListView, ManualVerificationView, WebhookTaskRunView
+from .views import AdminView, NewTaskFormView, TaskListView, ManualVerificationView, WebhookTaskRunView
 
 
 urlpatterns = [
     url(r'^$', AdminView.as_view(), name='ms-admin'),
-    url(r'^new-task/$', NewTaskView.as_view(), name='ms-new-task'),
+    url(r'^new-task/$', NewTaskFormView.as_view(), name='ms-new-task'),
     url(r'^tasks/$', TaskListView.as_view(), name='ms-tasks'),
     url(r'^manual-verification/$', ManualVerificationView.as_view(), name='ms-manual-verification'),
     url(r'^webhooks/task-run/$', WebhookTaskRunView.as_view())

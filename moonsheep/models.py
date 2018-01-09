@@ -1,5 +1,9 @@
+import importlib
 import inspect
+import json
 from typing import Callable
+
+from django.core import serializers
 from django.db import models as dmodels
 
 
@@ -65,3 +69,21 @@ class ModelMapper:
         params = self.fields
         params.update(extras)
         return self.klass(**params)
+
+
+def klass_from_name(name):
+    parts = name.split('.')
+    module_name, class_name = '.'.join(parts[:-1]), parts[-1]
+    try:
+        module_path = importlib.import_module(module_name)
+        klass = getattr(module_path, class_name)
+    except (ImportError, AttributeError) as e:
+        raise Exception("Couldn't import class {}".format(name)) from e
+    return klass
+
+
+def export_model(format_name, model_name):
+    model = klass_from_name(model_name)
+    data = json.loads(serializers.serialize(format_name, model.objects.all()))
+    model_data = [obj['fields'] for obj in data]
+    return model_data

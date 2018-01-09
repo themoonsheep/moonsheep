@@ -5,19 +5,20 @@ from django.conf import settings
 from django.db import models
 from django.http.request import QueryDict
 from django.test import TestCase as DjangoTestCase, Client, RequestFactory, override_settings
+from django.urls import reverse
 
 from unittest import TestCase as UnitTestCase
 from unittest.mock import MagicMock, patch, sentinel, call
 
-from moonsheep.exceptions import PresenterNotDefined, TaskWithNoTemplateNorForm, NoTasksLeft, TaskSourceNotDefined
-from moonsheep.forms import MultipleRangeField
+from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft, TaskSourceNotDefined
+from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.models import ModelMapper
 from moonsheep.settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, DEVELOPMENT_MODE
 )
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
-from moonsheep.views import unpack_post, TaskView
+from moonsheep.views import unpack_post, TaskView, NewTaskFormView, WebhookTaskRunView
 
 
 # TODO: FIXME
@@ -103,11 +104,11 @@ class TaskViewTest(DjangoTestCase):
         self.factory = RequestFactory()
         self.fake_path = '/'
         self.redirect_path = 'http://redirected.com/'
+        self.template_name = 'test-template.html'
         self.task_data = {
             'info': {
                 'url': 'http://example.com',
-                'task_template': 'task_template.html',
-                'task_form_template': 'task_form_template.html',
+                'template_name': 'task-template.html',
                 'task_form': 'myapp.forms.TaskForm'
             }
         }
@@ -119,7 +120,7 @@ class TaskViewTest(DjangoTestCase):
         }
 
     @patch('moonsheep.views.TaskView._get_task')
-    @patch('moonsheep.views.TaskView._get_form_class_data')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
     @patch('moonsheep.views.TaskView.get_context_data')
     def test_get(
             self,
@@ -130,6 +131,7 @@ class TaskViewTest(DjangoTestCase):
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request, **self.task_data)
+        view.template_name = self.template_name
         response = view.get(request)
         self.assertEqual(response.status_code, 200)
         _get_task_mock.assert_any_call()
@@ -137,7 +139,7 @@ class TaskViewTest(DjangoTestCase):
         get_context_data_mock.assert_any_call()
 
     @patch('moonsheep.views.TaskView._get_task')
-    @patch('moonsheep.views.TaskView._get_form_class_data')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
     @patch('moonsheep.views.TaskView.get_context_data')
     def test_get_no_tasks(
             self,
@@ -150,6 +152,7 @@ class TaskViewTest(DjangoTestCase):
         view = TaskView()
         view = setup_view(view, request, **self.task_data)
         view.task = AbstractTask()
+        view.template_name = self.template_name
         response = view.get(request)
         self.assertEqual(view.task, None)
         self.assertEqual(response.status_code, 200)
@@ -158,7 +161,7 @@ class TaskViewTest(DjangoTestCase):
         get_context_data_mock.assert_any_call()
 
     @patch('moonsheep.views.TaskView._get_task')
-    @patch('moonsheep.views.TaskView._get_form_class_data')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
     @patch('moonsheep.views.TaskView.get_form')
     @patch('moonsheep.views.TaskView.form_valid')
     def test_post(
@@ -184,7 +187,7 @@ class TaskViewTest(DjangoTestCase):
 
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView._get_task')
-    # @patch('moonsheep.views.TaskView._get_form_class_data')
+    # @patch('moonsheep.views.TaskView.initialize_task_data')
     # @patch('moonsheep.views.TaskView.get_form')
     # @patch('moonsheep.views.TaskView.form_invalid')
     # def test_post_invalid_form(
@@ -209,7 +212,7 @@ class TaskViewTest(DjangoTestCase):
     #     get_form_mock.assert_any_call()
 
     @patch('moonsheep.views.TaskView._get_task')
-    @patch('moonsheep.views.TaskView._get_form_class_data')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
     @patch('moonsheep.views.TaskView.get_form')
     @patch('moonsheep.views.unpack_post')
     @patch('moonsheep.views.TaskView._send_task')
@@ -277,23 +280,27 @@ class TaskViewTest(DjangoTestCase):
         self.assertEqual(context['message'], 'Broker returned no tasks')
         self.assertEqual(context['template'], 'error-messages/no-tasks.html')
 
-    @patch('moonsheep.tasks.AbstractTask.klass_from_name')
-    def test_get_form_class_data(self, klass_from_name_mock: MagicMock):
+    @patch('moonsheep.models.klass_from_name')
+    def test_initialize_task_data(
+            self,
+            klass_from_name_mock: MagicMock
+    ):
+        del self.task_data['info']['task_form']
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request)
         view.task = AbstractTask(**self.task_data)
-        view._get_form_class_data()
-        # TODO: divide in 2 test cases
+        view.initialize_task_data()
+        # TODO: divide to 2 test cases
         # self.assertEqual(view.template_name, self.task_data.get('info').get('template_name'))
-        self.assertEqual(view.task.task_form_template, self.task_data.get('info').get('task_form_template'))
-        klass_from_name_mock.assert_called_once_with(self.task_data.get('info').get('task_form'))
+        self.assertEqual(view.template_name, self.task_data.get('info').get('template_name'))
+        # klass_from_name_mock.assert_called_once_with(self.task_data.get('info').get('task_form'))
 
-    def test_get_form_class_data_no_template_nor_form(self):
+    def test_initialize_task_data_no_template_nor_form(self):
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request)
-        self.assertRaises(TaskWithNoTemplateNorForm, view._get_form_class_data)
+        self.assertRaises(TaskMustSetTemplate, view.initialize_task_data)
 
     def test_get_form_class(self):
         # TODO
@@ -338,28 +345,28 @@ class TaskViewTest(DjangoTestCase):
     #     # create_task_instance_mock.assert_called_once_with()
 
     # # TODO: FIXME
-    # @patch('pbclient.get_task')
-    # @patch('moonsheep.tasks.AbstractTask.create_task_instance')
-    # @override_settings(DEVELOPMENT_MODE=False)
-    # def test_get_task_old_not_development(
-    #         self,
-    #         create_task_instance_mock: MagicMock,
-    #         get_task_mock: MagicMock
-    # ):
-    #     request = self.factory.get(self.fake_path)
-    #     view = TaskView()
-    #     view = setup_view(view, request)
-    #     view._get_task(new=False)
-    #     # get_task_mock.assert_called_once_with()
-    #     # TODO: FIXME
-    #     # create_task_instance_mock.assert_called_once_with()
+    @patch('pbclient.get_task')
+    @patch('moonsheep.tasks.AbstractTask.create_task_instance')
+    @override_settings(DEVELOPMENT_MODE=False)
+    def test_get_task_old_not_development(
+            self,
+            create_task_instance_mock: MagicMock,
+            get_task_mock: MagicMock
+    ):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        view._get_task(new=False, project_id=self.pybossa_project_id, task_id=self.task_id)
+        get_task_mock.assert_called_once_with(project_id=self.pybossa_project_id, task_id=self.task_id)
+        # TODO: FIXME
+        # create_task_instance_mock.assert_called_once_with()
 
     def test_form_valid(self):
         pass
 
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_mocked_task_data')
-    # @override_settings(TASK_SOURCE=RANDOM_SOURCE)
+    # @override_settings(MOONSHEEP_TASK_SOURCE=RANDOM_SOURCE)
     # def test_get_new_task_random_mocked_task(self, get_random_mocked_task_data_mock: MagicMock):
     #     request = self.factory.get(self.fake_path)
     #     view = TaskView()
@@ -371,7 +378,7 @@ class TaskViewTest(DjangoTestCase):
 
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_pybossa_task')
-    # @override_settings(TASK_SOURCE=PYBOSSA_SOURCE)
+    # @override_settings(MOONSHEEP_TASK_SOURCE=PYBOSSA_SOURCE)
     # def test_get_new_task_random_pybossa_task(self, get_random_pybossa_task_mock: MagicMock):
     #     request = self.factory.get(self.fake_path)
     #     view = TaskView()
@@ -421,6 +428,48 @@ class TaskViewTest(DjangoTestCase):
 
     def test_send_pybossa_task(self):
         pass
+
+
+@override_settings(ROOT_URLCONF='moonsheep.urls')
+class NewTaskFormViewTest(DjangoTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.client = Client()
+        self.path = reverse('ms-new-task')
+        self.pybossa_project_id = 1
+        self.task_id = 1
+
+    def test_get_success_url(self):
+        request = self.factory.get(self.path)
+        view = NewTaskFormView()
+        view.request = request
+        success_url = view.get_success_url()
+        self.assertEquals(success_url, self.path)
+
+    @patch('pbclient.set')
+    @patch('pbclient.create_task')
+    def test_form_valid(
+            self,
+            create_task_mock: MagicMock,
+            set_mock: MagicMock
+    ):
+        request = self.factory.get(self.path)
+        view = NewTaskFormView()
+        view.request = request
+        form_data = {
+            'url': 'http://byleco.pl'
+        }
+        form = NewTaskForm(form_data)
+        form.full_clean()
+        success_url = view.form_valid(form).url
+        self.assertEquals(success_url, self.path)
+        # set_mock.assert_has_calls([call('endpoint', settings.PY)])
+        # create_task_mock.assert_any_call({
+        #     'project_id': PYBOSSA_PROJECT_ID,
+        #     'info': {
+        #         'type':
+        #     }
+        # })
 
 
 class WebhookTaskRunViewTest(UnitTestCase):

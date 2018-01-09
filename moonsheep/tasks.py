@@ -1,7 +1,7 @@
-import importlib
 import logging
 import pbclient
 
+from .models import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
 from .settings import (
     DEVELOPMENT_MODE
@@ -27,9 +27,9 @@ class AbstractTask(object):
 
             # to override templates
             if 'task_form' in info:
-                self.task_form = AbstractTask.klass_from_name(info.get('task_form'))
-            if 'task_form_template' in info:
-                self.task_form_template = info.get('task_form_template')
+                self.task_form = klass_from_name(info.get('task_form'))
+            if 'template_name' in info:
+                self.template_name = info.get('template_name')
             # if type == "pybossa_task"
 
     def get_presenter(self):
@@ -125,17 +125,6 @@ class AbstractTask(object):
             return pbclient.create_task(self.project_id, info, self.N_ANSWERS)
 
     @staticmethod
-    def klass_from_name(name):
-        parts = name.split('.')
-        module_name, class_name = '.'.join(parts[:-1]), parts[-1]
-        try:
-            module_path = importlib.import_module(module_name)
-            klass = getattr(module_path, class_name)
-        except (ImportError, AttributeError) as e:
-            raise Exception("Couldn't import class {}".format(name)) from e
-        return klass
-
-    @staticmethod
     def create_task_instance(task_type, **kwargs):
         """
         Create relevant task instance.
@@ -145,7 +134,7 @@ class AbstractTask(object):
         :return: Task object
         """
 
-        klass = AbstractTask.klass_from_name(task_type)
+        klass = klass_from_name(task_type)
         return klass(**kwargs)
 
     @staticmethod
@@ -157,22 +146,3 @@ class AbstractTask(object):
 
         task = AbstractTask.create_task_instance(task_data[0]['info']['type'], **task_data[0])
         task.verify_and_save(taskruns_list)
-
-# # Flow 2. Serve form for a given task  (to implement in Moonsheep Controller)
-# task_type = 'find_table'
-# task = FindTableTask()
-# task.get_form() ->
-# task.get_presenter(pybossa.task_data)
-#
-# # Flow 4. Verify task runs of a given task
-# # input
-# task_type = 'find_table'
-# task_runs = []
-# # logic
-# task = FindTableTask()
-# task.full_verify(task_runs) # it generates cl.verified_data or throws some errors
-#     try:
-#         verified_data = self.verify() # if it's overriden
-#
-# task.verified_data # aka self.cleaned_data = {}
-# task.save_verified_data() # saves to the model

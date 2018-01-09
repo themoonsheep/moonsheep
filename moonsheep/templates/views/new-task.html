@@ -18,13 +18,23 @@
     <div class="col-8">
       <h3>Import documents</h3>
       <h4 class="mt-5">via URL</h4>
+      {% if form.errors %}
+      <div class="alert alert-danger" role="alert">
+        {% if form.non_field_errors %}
+          {% for error in form.non_field_errors %}
+              <strong>{{ error|escape }}</strong>
+          {% endfor %}
+        {% endif %}
+        {% if form.errors.url %}{{ form.errors.url }}{% endif %}
+      </div>
+      {% endif %}
       <form action="#" method="post" class="form-inline">
         {% csrf_token %}
-        <div class="form-group mx-sm-5">
-          <label for="documentURL">Document URL</label>
+        <div class="form-group mx-sm-5{% if form.errors.url %} has-error{% endif %}">
+          <label for="id_url">Document URL</label>
         </div>
-        <div class="form-group">
-          <input id="documentURL" type="text" class="form-control">
+        <div class="form-group{% if form.errors.url %} has-error{% endif %}">
+          <input id="id_url" name="url" type="text" class="form-control">
         </div>
         <div class="form-group">
           <button class="btn btn-success" type="submit">Submit</button>
