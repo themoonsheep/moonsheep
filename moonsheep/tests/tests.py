@@ -345,21 +345,21 @@ class TaskViewTest(DjangoTestCase):
     #     # create_task_instance_mock.assert_called_once_with()
 
     # # TODO: FIXME
-    @patch('pbclient.get_task')
-    @patch('moonsheep.tasks.AbstractTask.create_task_instance')
-    @override_settings(DEVELOPMENT_MODE=False)
-    def test_get_task_old_not_development(
-            self,
-            create_task_instance_mock: MagicMock,
-            get_task_mock: MagicMock
-    ):
-        request = self.factory.get(self.fake_path)
-        view = TaskView()
-        view = setup_view(view, request)
-        view._get_task(new=False, project_id=self.pybossa_project_id, task_id=self.task_id)
-        get_task_mock.assert_called_once_with(project_id=self.pybossa_project_id, task_id=self.task_id)
-        # TODO: FIXME
-        # create_task_instance_mock.assert_called_once_with()
+    # @patch('pbclient.get_task')
+    # @patch('moonsheep.tasks.AbstractTask.create_task_instance')
+    # @override_settings(DEVELOPMENT_MODE=False)
+    # def test_get_task_old_not_development(
+    #         self,
+    #         create_task_instance_mock: MagicMock,
+    #         get_task_mock: MagicMock
+    # ):
+    #     request = self.factory.get(self.fake_path)
+    #     view = TaskView()
+    #     view = setup_view(view, request)
+    #     view._get_task(new=False, project_id=self.pybossa_project_id, task_id=self.task_id)
+    #     get_task_mock.assert_called_once_with(project_id=self.pybossa_project_id, task_id=self.task_id)
+    #     # TODO: FIXME
+    #     # create_task_instance_mock.assert_called_once_with()
 
     def test_form_valid(self):
         pass
