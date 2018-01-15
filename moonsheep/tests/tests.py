@@ -1,6 +1,6 @@
 import json
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.conf import settings
 from django.db import models
 from django.http.request import QueryDict
@@ -14,7 +14,7 @@ from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTas
 from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.models import ModelMapper
 from moonsheep.settings import (
-    RANDOM_SOURCE, PYBOSSA_SOURCE, DEVELOPMENT_MODE
+    PYBOSSA_BASE_URL, RANDOM_SOURCE, PYBOSSA_SOURCE, DEVELOPMENT_MODE
 )
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
@@ -155,6 +155,56 @@ class TaskViewTest(DjangoTestCase):
         view.template_name = self.template_name
         response = view.get(request)
         self.assertEqual(view.task, None)
+        self.assertEqual(view.error_message, 'Broker returned no tasks')
+        self.assertEqual(view.error_template, 'error-messages/no-tasks.html')
+        self.assertEqual(response.status_code, 200)
+        _get_task_mock.assert_any_call()
+        _get_form_class_data_mock.assert_not_called()
+        get_context_data_mock.assert_any_call()
+
+    @patch('moonsheep.views.TaskView._get_task')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
+    @patch('moonsheep.views.TaskView.get_context_data')
+    def test_get_improperly_configured(
+            self,
+            get_context_data_mock: MagicMock,
+            _get_form_class_data_mock: MagicMock,
+            _get_task_mock: MagicMock
+    ):
+        _get_task_mock.side_effect = ImproperlyConfigured
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request, **self.task_data)
+        view.task = AbstractTask()
+        view.template_name = self.template_name
+        response = view.get(request)
+        self.assertEqual(view.task, None)
+        self.assertEqual(view.error_message, 'Improperly configured PyBossa')
+        self.assertEqual(view.error_template, 'error-messages/improperly-configured.html')
+        self.assertEqual(response.status_code, 200)
+        _get_task_mock.assert_any_call()
+        _get_form_class_data_mock.assert_not_called()
+        get_context_data_mock.assert_any_call()
+
+    @patch('moonsheep.views.TaskView._get_task')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
+    @patch('moonsheep.views.TaskView.get_context_data')
+    def test_get_presenter_not_defined(
+            self,
+            get_context_data_mock: MagicMock,
+            _get_form_class_data_mock: MagicMock,
+            _get_task_mock: MagicMock
+    ):
+        _get_task_mock.side_effect = PresenterNotDefined
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request, **self.task_data)
+        view.task = AbstractTask()
+        view.template_name = self.template_name
+        response = view.get(request)
+        self.assertEqual(view.task, None)
+        self.assertEqual(view.error_message, 'Presenter not defined')
+        self.assertEqual(view.error_template, 'error-messages/presenter-not-defined.html')
         self.assertEqual(response.status_code, 200)
         _get_task_mock.assert_any_call()
         _get_form_class_data_mock.assert_not_called()
@@ -262,7 +312,13 @@ class TaskViewTest(DjangoTestCase):
         response = view.post(request)
         self.assertEqual(response.status_code, 400)
 
-    def test_get_context_data(self):
+    @patch('moonsheep.views.TaskView._get_task')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
+    def test_get_context_data(
+            self,
+            initialize_task_data_mock: MagicMock,
+            _get_task_mock: MagicMock
+    ):
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request)
@@ -270,15 +326,42 @@ class TaskViewTest(DjangoTestCase):
         context = view.get_context_data()
         self.assertIsInstance(context['task'], AbstractTask)
         self.assertEqual(context['task'], view.task)
+        self.assertEqual(context['project_id'], PYBOSSA_PROJECT_ID)
+        self.assertEqual(context['pybossa_url'], PYBOSSA_BASE_URL)
 
-    def test_get_context_data_no_task(self):
+    @patch('moonsheep.views.TaskView._get_task')
+    @patch('moonsheep.views.TaskView.initialize_task_data')
+    @patch('moonsheep.tasks.AbstractTask.get_presenter')
+    def test_get_context_data_presenter_typeerror(
+            self,
+            get_presenter_mock: MagicMock,
+            initialize_task_data_mock: MagicMock,
+            _get_task_mock: MagicMock
+    ):
+        get_presenter_mock.side_effect = TypeError
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request)
+        view.task = AbstractTask()
+        with self.assertRaises(PresenterNotDefined):
+            view.get_context_data()
+
+    @patch('moonsheep.views.TaskView.initialize_task_data')
+    def test_get_context_data_no_task(
+            self,
+            _get_task_mock: MagicMock
+    ):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view.error_message = 'Sample error message'
+        view.error_template = 'Sample error template'
+        view = setup_view(view, request)
         context = view.get_context_data()
         self.assertTrue(context['error'])
-        self.assertEqual(context['message'], 'Broker returned no tasks')
-        self.assertEqual(context['template'], 'error-messages/no-tasks.html')
+        self.assertEqual(context['message'], 'Sample error message')
+        self.assertEqual(context['template'], 'Sample error template')
+        self.assertEqual(context['project_id'], PYBOSSA_PROJECT_ID)
+        self.assertEqual(context['pybossa_url'], PYBOSSA_BASE_URL)
 
     @patch('moonsheep.models.klass_from_name')
     def test_initialize_task_data(
@@ -471,6 +554,8 @@ class NewTaskFormViewTest(DjangoTestCase):
         #     }
         # })
 
+    # def test_form_valid_no_base_tasks(self):
+
 
 class WebhookTaskRunViewTest(UnitTestCase):
     def test_dispatch(self):
@@ -522,7 +607,7 @@ class UnpackPostTest(UnitTestCase):
             'field': ['val1', 'val2']
         })
 
-        # but QuueryDict.dict() don't (it just return the last value)
+        # but QueryDict.dict() don't (it just return the last value)
         self.assertDictEqual(post.dict(), {
             'field': 'val2'
         })

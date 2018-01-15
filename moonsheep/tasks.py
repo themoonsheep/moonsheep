@@ -94,8 +94,12 @@ class AbstractTask(object):
         :param verified_data:
         :return:
         """
-        raise NotImplementedError("Task {}.{} should define save_verified_data method"
-                                  .format(self.__class__.__module__, self.__class__.__name__))
+        raise NotImplementedError(
+            "Task {}.{} should define save_verified_data method".format(
+                self.__class__.__module__,
+                self.__class__.__name__
+            )
+        )
 
     def after_save(self, verified_data):
         """

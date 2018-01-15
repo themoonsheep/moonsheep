@@ -3,6 +3,7 @@ import json
 import pbclient
 import re
 
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.http.request import QueryDict
 from django.urls import reverse
@@ -11,14 +12,16 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView
 
+from requests.exceptions import ConnectionError
+
 from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
 from .forms import NewTaskForm
 from .settings import (
-    BASE_TASK,
+    BASE_TASKS,
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
-    PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
+    PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
 )
 from .tasks import AbstractTask
 
@@ -26,6 +29,8 @@ from .tasks import AbstractTask
 class TaskView(FormView):
     task = None
     form_class = None
+    error_message = None
+    error_template = None
 
     def get(self, request, *args, **kwargs):
         """
@@ -42,6 +47,15 @@ class TaskView(FormView):
             self.task = self._get_task()
             self.initialize_task_data()
         except NoTasksLeft:
+            self.error_message = 'Broker returned no tasks'
+            self.error_template = 'error-messages/no-tasks.html'
+        except ImproperlyConfigured:
+            self.error_message = 'Improperly configured PyBossa'
+            self.error_template = 'error-messages/improperly-configured.html'
+        except PresenterNotDefined:
+            self.error_message = 'Presenter not defined'
+            self.error_template = 'error-messages/presenter-not-defined.html'
+        finally:
             self.task = None
             self.template_name = 'views/message.html'
 
@@ -87,17 +101,21 @@ class TaskView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super(TaskView, self).get_context_data(**kwargs)
+        context.update({
+            'project_id': PYBOSSA_PROJECT_ID,
+            'pybossa_url': PYBOSSA_BASE_URL
+        })
         if self.task:
             context['task'] = self.task
             try:
                 context['presenter'] = self.task.get_presenter()
             except TypeError:
-                pass
+                raise PresenterNotDefined
         else:
             context.update({
                 'error': True,
-                'message': 'Broker returned no tasks',
-                'template': 'error-messages/no-tasks.html'
+                'message': self.error_message,
+                'template': self.error_template
             })
         return context
 
@@ -219,7 +237,13 @@ class TaskView(FormView):
         :rtype: dict
         :return: task structure
         """
-        return pbclient.get_new_task(PYBOSSA_PROJECT_ID)
+        try:
+            return pbclient.get_new_task(PYBOSSA_PROJECT_ID)
+        except ConnectionError:
+            raise ImproperlyConfigured(
+                "Please check if PyBossa is running and properly set. Current settings: PYBOSSA_URL = {0}, "
+                "PYBOSSA_PROJECT_ID = {1}".format(PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID)
+            )
 
     def _send_task(self, data):
         """
@@ -259,14 +283,17 @@ class NewTaskFormView(FormView):
         from moonsheep.settings import PYBOSSA_BASE_URL, PYBOSSA_API_KEY
         pbclient.set('endpoint', PYBOSSA_BASE_URL)
         pbclient.set('api_key', PYBOSSA_API_KEY)
-        pbclient.create_task(
-            project_id=PYBOSSA_PROJECT_ID,
-            info={
-                'type': BASE_TASK,
-                'url': form.cleaned_data.get('url'),
-            },
-            n_answers=1
-        )
+        if not BASE_TASKS:
+            raise ImproperlyConfigured
+        for task in BASE_TASKS:
+            pbclient.create_task(
+                project_id=PYBOSSA_PROJECT_ID,
+                info={
+                    'type': task,
+                    'url': form.cleaned_data.get('url'),
+                },
+                n_answers=1
+            )
         return super(NewTaskFormView, self).form_valid(form)
 
 
