@@ -21,7 +21,7 @@ from .forms import NewTaskForm
 from .settings import (
     BASE_TASKS,
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
-    PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID, DEVELOPMENT_MODE
+    PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID
 )
 from .tasks import AbstractTask
 
@@ -163,13 +163,15 @@ class TaskView(FormView):
         if new:
             task_data = self._get_new_task()
         else:
-            if DEVELOPMENT_MODE:
+            if TASK_SOURCE == RANDOM_SOURCE:
                 task_data = self.get_random_mocked_task_data(task_id)
-            else:
+            elif TASK_SOURCE == PYBOSSA_SOURCE:
                 task_data = pbclient.get_task(
                     project_id=project_id,
                     task_id=task_id
                 )[0]
+            else:
+                raise TaskSourceNotDefined
 
         return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
 
@@ -249,13 +251,12 @@ class TaskView(FormView):
         """
         Mechanism responsible for sending tasks. Points to PyBossa API taskrun and sends data from form.
         """
-        if DEVELOPMENT_MODE:
+        if TASK_SOURCE == RANDOM_SOURCE:
             # In development let's take a shortcut straight to verification
             taskruns_list = [data]
             self.task.verify_and_save(taskruns_list)
             return
-
-        if TASK_SOURCE == PYBOSSA_SOURCE:
+        elif TASK_SOURCE == PYBOSSA_SOURCE:
             self.send_pybossa_task(data)
         else:
             raise TaskSourceNotDefined()

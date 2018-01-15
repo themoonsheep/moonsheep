@@ -14,7 +14,7 @@ from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTas
 from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.models import ModelMapper
 from moonsheep.settings import (
-    PYBOSSA_BASE_URL, RANDOM_SOURCE, PYBOSSA_SOURCE, DEVELOPMENT_MODE
+    PYBOSSA_BASE_URL, RANDOM_SOURCE, PYBOSSA_SOURCE
 )
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
@@ -413,7 +413,7 @@ class TaskViewTest(DjangoTestCase):
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_mocked_task_data')
     # @patch('moonsheep.tasks.AbstractTask.create_task_instance')
-    # @override_settings(DEVELOPMENT_MODE=True)
+    # @override_settings(TASK_SOURCE=RANDOM_SOURCE)
     # def test_get_task_old_development(
     #         self,
     #         create_task_instance_mock: MagicMock,
@@ -430,7 +430,7 @@ class TaskViewTest(DjangoTestCase):
     # # TODO: FIXME
     # @patch('pbclient.get_task')
     # @patch('moonsheep.tasks.AbstractTask.create_task_instance')
-    # @override_settings(DEVELOPMENT_MODE=False)
+    # @override_settings(TASK_SOURCE=PYBOSSA_SOURCE)
     # def test_get_task_old_not_development(
     #         self,
     #         create_task_instance_mock: MagicMock,
