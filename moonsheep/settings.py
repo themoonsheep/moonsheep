@@ -16,7 +16,6 @@ If set Moonsheep won't communicate with PyBossa and will:
 2. send form submissions straight to the verification
    won't test cross-checking as there is going to be only one entry, but will allow to test the whole flow  
 """
-BASE_TASKS = getattr(settings, 'MOONSHEEP_BASE_TASKS', None)
 
 # pybossa endpoints
 DEFAULT_PYBOSSA_URL = 'http://localhost:5000'

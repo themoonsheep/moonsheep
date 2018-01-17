@@ -18,8 +18,8 @@ from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
 from .forms import NewTaskForm
+from .register import base_task, initial_task
 from .settings import (
-    BASE_TASKS,
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID
 )
@@ -49,13 +49,16 @@ class TaskView(FormView):
         except NoTasksLeft:
             self.error_message = 'Broker returned no tasks'
             self.error_template = 'error-messages/no-tasks.html'
+            self.task = None
+            self.template_name = 'views/message.html'
         except ImproperlyConfigured:
             self.error_message = 'Improperly configured PyBossa'
             self.error_template = 'error-messages/improperly-configured.html'
+            self.task = None
+            self.template_name = 'views/message.html'
         except PresenterNotDefined:
             self.error_message = 'Presenter not defined'
             self.error_template = 'error-messages/presenter-not-defined.html'
-        finally:
             self.task = None
             self.template_name = 'views/message.html'
 
@@ -172,7 +175,6 @@ class TaskView(FormView):
                 )[0]
             else:
                 raise TaskSourceNotDefined
-
         return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
 
     def _get_new_task(self):
@@ -200,9 +202,8 @@ class TaskView(FormView):
     def get_random_mocked_task_data(self, task_type=None):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         if task_type is None:
-            defined_tasks = [
-                klass.__module__ + '.' + klass.__qualname__ for klass in globals()['AbstractTask'].__subclasses__()
-            ]
+            from .register import base_task
+            defined_tasks = base_task.registry
             defined_tasks.sort()
 
             if not defined_tasks:
@@ -284,13 +285,13 @@ class NewTaskFormView(FormView):
         from moonsheep.settings import PYBOSSA_BASE_URL, PYBOSSA_API_KEY
         pbclient.set('endpoint', PYBOSSA_BASE_URL)
         pbclient.set('api_key', PYBOSSA_API_KEY)
-        if not BASE_TASKS:
+        if not len(initial_task.registry):
             raise ImproperlyConfigured
-        for task in BASE_TASKS:
+        for task in initial_task.registry:
             pbclient.create_task(
                 project_id=PYBOSSA_PROJECT_ID,
                 info={
-                    'type': task,
+                    'type': task.__module__ + '.' + task.__name__,
                     'url': form.cleaned_data.get('url'),
                 },
                 n_answers=1
@@ -300,6 +301,11 @@ class NewTaskFormView(FormView):
 
 class TaskListView(TemplateView):
     template_name = 'views/stats.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(TaskListView, self).get_context_data(**kwargs)
+        context['tasks'] = base_task.registry
+        return context
 
 
 class ManualVerificationView(TemplateView):

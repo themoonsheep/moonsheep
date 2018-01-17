@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch, sentinel, call
 from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft, TaskSourceNotDefined
 from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.models import ModelMapper
+from moonsheep.register import initial_task
 from moonsheep.settings import (
     PYBOSSA_BASE_URL, RANDOM_SOURCE, PYBOSSA_SOURCE
 )
@@ -531,12 +532,32 @@ class NewTaskFormViewTest(DjangoTestCase):
 
     @patch('pbclient.set')
     @patch('pbclient.create_task')
+    def test_form_valid_no_registry(
+            self,
+            create_task_mock: MagicMock,
+            set_mock: MagicMock
+    ):
+        request = self.factory.get(self.path)
+        initial_task.clear()
+        view = NewTaskFormView()
+        view.request = request
+        form_data = {
+            'url': 'http://byleco.pl'
+        }
+        form = NewTaskForm(form_data)
+        form.full_clean()
+        with self.assertRaises(ImproperlyConfigured):
+            view.form_valid(form)
+
+    @patch('pbclient.set')
+    @patch('pbclient.create_task')
     def test_form_valid(
             self,
             create_task_mock: MagicMock,
             set_mock: MagicMock
     ):
         request = self.factory.get(self.path)
+        initial_task.register(AbstractTask)
         view = NewTaskFormView()
         view.request = request
         form_data = {
