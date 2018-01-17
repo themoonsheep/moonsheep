@@ -414,8 +414,8 @@ class TaskViewTest(DjangoTestCase):
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_mocked_task_data')
     # @patch('moonsheep.tasks.AbstractTask.create_task_instance')
-    # @override_settings(TASK_SOURCE=RANDOM_SOURCE)
-    # def test_get_task_old_development(
+    # @patch('moonsheep.settings.TASK_SOURCE', RANDOM_SOURCE)
+    # def test_get_task_random_source(
     #         self,
     #         create_task_instance_mock: MagicMock,
     #         get_random_mocked_task_data_mock: MagicMock

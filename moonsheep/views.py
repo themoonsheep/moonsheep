@@ -202,7 +202,6 @@ class TaskView(FormView):
     def get_random_mocked_task_data(self, task_type=None):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         if task_type is None:
-            from .register import base_task
             defined_tasks = base_task.registry
             defined_tasks.sort()
 
@@ -291,7 +290,7 @@ class NewTaskFormView(FormView):
             pbclient.create_task(
                 project_id=PYBOSSA_PROJECT_ID,
                 info={
-                    'type': task.__module__ + '.' + task.__name__,
+                    'type': task,
                     'url': form.cleaned_data.get('url'),
                 },
                 n_answers=1
