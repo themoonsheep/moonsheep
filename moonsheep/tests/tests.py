@@ -1,7 +1,7 @@
 import json
+from requests.exceptions import ConnectionError
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.conf import settings
 from django.db import models
 from django.http.request import QueryDict
 from django.test import TestCase as DjangoTestCase, Client, RequestFactory, override_settings
@@ -13,10 +13,8 @@ from unittest.mock import MagicMock, patch, sentinel, call
 from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft, TaskSourceNotDefined
 from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.models import ModelMapper
-from moonsheep.register import initial_task
-from moonsheep.settings import (
-    PYBOSSA_BASE_URL, RANDOM_SOURCE, PYBOSSA_SOURCE
-)
+from moonsheep.register import base_task, initial_task
+from moonsheep.settings import PYBOSSA_SOURCE, RANDOM_SOURCE
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
 from moonsheep.views import unpack_post, TaskView, NewTaskFormView, WebhookTaskRunView
@@ -328,6 +326,7 @@ class TaskViewTest(DjangoTestCase):
         self.assertIsInstance(context['task'], AbstractTask)
         self.assertEqual(context['task'], view.task)
         self.assertEqual(context['project_id'], PYBOSSA_PROJECT_ID)
+        from moonsheep.settings import PYBOSSA_BASE_URL
         self.assertEqual(context['pybossa_url'], PYBOSSA_BASE_URL)
 
     @patch('moonsheep.views.TaskView._get_task')
@@ -362,6 +361,7 @@ class TaskViewTest(DjangoTestCase):
         self.assertEqual(context['message'], 'Sample error message')
         self.assertEqual(context['template'], 'Sample error template')
         self.assertEqual(context['project_id'], PYBOSSA_PROJECT_ID)
+        from moonsheep.settings import PYBOSSA_BASE_URL
         self.assertEqual(context['pybossa_url'], PYBOSSA_BASE_URL)
 
     @patch('moonsheep.models.klass_from_name')
@@ -451,7 +451,9 @@ class TaskViewTest(DjangoTestCase):
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_mocked_task_data')
     # @override_settings(MOONSHEEP_TASK_SOURCE=RANDOM_SOURCE)
+    # @patch('moonsheep.settings.TASK_SOURCE', RANDOM_SOURCE)
     # def test_get_new_task_random_mocked_task(self, get_random_mocked_task_data_mock: MagicMock):
+    #     from moonsheep.views import TaskView
     #     request = self.factory.get(self.fake_path)
     #     view = TaskView()
     #     view = setup_view(view, request)
@@ -462,8 +464,10 @@ class TaskViewTest(DjangoTestCase):
 
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_pybossa_task')
-    # @override_settings(MOONSHEEP_TASK_SOURCE=PYBOSSA_SOURCE)
+    # @override_settings(TASK_SOURCE=PYBOSSA_SOURCE)
+    # @patch('moonsheep.settings.TASK_SOURCE', PYBOSSA_SOURCE)
     # def test_get_new_task_random_pybossa_task(self, get_random_pybossa_task_mock: MagicMock):
+    #     from moonsheep.views import TaskView
     #     request = self.factory.get(self.fake_path)
     #     view = TaskView()
     #     view = setup_view(view, request)
@@ -475,7 +479,7 @@ class TaskViewTest(DjangoTestCase):
     # TODO: FIXME
     # @override_settings(TASK_SOURCE='error-source')
     # def test_get_new_task_not_defined(self):
-    #     from moonsheep.moonsheep_settings import TASK_SOURCE
+    #     from moonsheep.settings import TASK_SOURCE
     #     request = self.factory.get(self.fake_path)
     #     view = TaskView()
     #     view = setup_view(view, request)
@@ -493,19 +497,46 @@ class TaskViewTest(DjangoTestCase):
     #     with self.assertRaises(NoTasksLeft):
     #         view._get_new_task()
 
+    # TODO: test tasks rotation
     def test_get_random_mocked_task_data(self):
-        pass
+        request = self.factory.get(self.fake_path)
+        base_task.register(AbstractTask)
+        view = TaskView()
+        view = setup_view(view, request)
+        task = view.get_random_mocked_task_data()
+        self.assertEqual(task, {
+            'project_id': 'https://i.imgflip.com/hkimf.jpg',
+            'info': {
+                'url': 'https://nazk.gov.ua/sites/default/files/docs/2017/3/3_kv/2/Agrarna_partija/3%20%EA%E2%E0%F0%F2%E0%EB%202017%20%D6%C0%20%C0%CF%D3%20%97%20%E7%E0%F2%E5%F0%F2%E8%E9.pdf',
+                'type': 'moonsheep.tasks.AbstractTask'
+            },
+            'id': 'moonsheep.tasks.AbstractTask'
+        })
+        base_task.clear()
 
-    # TODO: FIXME
-    # FIXME: AttributeError: <module 'pbclient'> does not have the attribute 'get_new_task'
-    # @patch('pbclient.get_new_task')
-    # @override_settings(PYBOSSA_PROJECT_ID=PYBOSSA_PROJECT_ID)
-    # def test_get_random_pybossa_task(self, get_new_task_mock: MagicMock):
-    #     request = self.factory.get(self.fake_path)
-    #     view = TaskView()
-    #     view = setup_view(view, request)
-    #     view.get_random_pybossa_task()
-    #     get_new_task_mock.assert_called_with(PYBOSSA_PROJECT_ID)
+    def test_get_random_mocked_task_data_no_registry(self):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        with self.assertRaises(NotImplementedError):
+            view.get_random_mocked_task_data()
+
+    @patch('pbclient.get_new_task')
+    def test_get_random_pybossa_task(self, get_new_task_mock: MagicMock):
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        view.get_random_pybossa_task()
+        get_new_task_mock.assert_called_with(PYBOSSA_PROJECT_ID)
+
+    @patch('pbclient.get_new_task')
+    def test_get_random_pybossa_task_connection_error(self, get_new_task_mock: MagicMock):
+        get_new_task_mock.side_effect = ConnectionError
+        request = self.factory.get(self.fake_path)
+        view = TaskView()
+        view = setup_view(view, request)
+        with self.assertRaises(ImproperlyConfigured):
+            view.get_random_pybossa_task()
 
     def test_send_task(self):
         pass
@@ -538,7 +569,6 @@ class NewTaskFormViewTest(DjangoTestCase):
             set_mock: MagicMock
     ):
         request = self.factory.get(self.path)
-        initial_task.clear()
         view = NewTaskFormView()
         view.request = request
         form_data = {
@@ -567,6 +597,7 @@ class NewTaskFormViewTest(DjangoTestCase):
         form.full_clean()
         success_url = view.form_valid(form).url
         self.assertEquals(success_url, self.path)
+        initial_task.clear()
         # set_mock.assert_has_calls([call('endpoint', settings.PY)])
         # create_task_mock.assert_any_call({
         #     'project_id': PYBOSSA_PROJECT_ID,
