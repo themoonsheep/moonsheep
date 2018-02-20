@@ -17,7 +17,7 @@ from moonsheep.register import base_task, initial_task
 from moonsheep.settings import PYBOSSA_SOURCE, RANDOM_SOURCE
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
-from moonsheep.views import unpack_post, TaskView, NewTaskFormView, WebhookTaskRunView
+from moonsheep.views import unpack_post, TaskView, NewTaskFormView, TaskListView, WebhookTaskRunView
 
 
 # TODO: FIXME
@@ -225,7 +225,6 @@ class TaskViewTest(DjangoTestCase):
         view = setup_view(view, request, **self.task_data)
         view.post(request)
         _get_task_mock.assert_called_once_with(
-            new=False,
             project_id=str(self.post_data.get('_project_id')),
             task_id=str(self.post_data.get('_task_id'))
         )
@@ -290,7 +289,6 @@ class TaskViewTest(DjangoTestCase):
         get_form_mock.assert_any_call()
         _get_form_class_data_mock.assert_any_call()
         _get_task_mock.assert_called_with(
-            new=False,
             project_id=str(self.post_data.get('_project_id')),
             task_id=str(self.post_data.get('_task_id'))
         )
@@ -406,7 +404,7 @@ class TaskViewTest(DjangoTestCase):
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request)
-        view._get_task(new=True)
+        view._get_task()
         _get_new_task_mock.assert_any_call()
         # TODO: FIXME
         # create_task_instance_mock.assert_called_once_with()
@@ -610,6 +608,28 @@ class NewTaskFormViewTest(DjangoTestCase):
         # })
 
     # def test_form_valid_no_base_tasks(self):
+
+
+@override_settings(ROOT_URLCONF='moonsheep.urls')
+class TaskListViewTest(DjangoTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.client = Client()
+        self.path = reverse('ms-tasks')
+        self.pybossa_project_id = 1
+        self.task_id = 1
+
+    @patch('pbclient.get_tasks')
+    @patch('pbclient.get_taskruns')
+    def test_get_context_data(
+            self,
+            get_taskruns_mock: MagicMock,
+            get_tasks: MagicMock
+    ):
+        request = self.factory.get(self.path)
+        view = TaskListView()
+        view.request = request
+        view.get_context_data()
 
 
 class WebhookTaskRunViewTest(UnitTestCase):

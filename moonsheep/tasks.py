@@ -1,22 +1,23 @@
 import logging
 import pbclient
 
-from .models import klass_from_name
+from .models import klass_from_name, name_from_klass
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
 from .settings import (
-    TASK_SOURCE, RANDOM_SOURCE
+    TASK_SOURCE, RANDOM_SOURCE, REDUNDANCY
 )
 
 logger = logging.getLogger(__name__)
 
 
 class AbstractTask(object):
-    N_ANSWERS = 1
+    N_ANSWERS = REDUNDANCY
+    verbose_name = None
+    url = None
+    data = {}
 
     def __init__(self, **kwargs):
         info = kwargs.get('info')
-        self.url = None
-        self.data = {}
 
         self.project_id = kwargs.get('project_id')
         self.id = kwargs.get('id')
@@ -31,6 +32,16 @@ class AbstractTask(object):
             if 'template_name' in info:
                 self.template_name = info.get('template_name')
             # if type == "pybossa_task"
+
+    def __str__(self):
+        return self.full_klass_name()
+
+    @classmethod
+    def full_klass_name(cls):
+        return name_from_klass(cls)
+
+    def display(self):
+        return self.verbose_name if self.verbose_name else self.full_klass_name()
 
     def get_presenter(self):
         """
@@ -121,7 +132,10 @@ class AbstractTask(object):
         """
         # TODO: 'type' is now reserved key in task params
         # TODO: maybe we should reserve '_type' ?
-        info['type'] = ".".join([task.__module__, task.__name__])
+        info.update({
+            'type': task.__name__(),
+            'parent_task': self.__name__()
+        })
 
         if TASK_SOURCE == RANDOM_SOURCE:
             logger.info("Skipping task creation because TASK_SOURCE is set to random: " + repr(info))

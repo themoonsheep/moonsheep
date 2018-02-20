@@ -7,8 +7,11 @@ from django.conf import settings
 RANDOM_SOURCE = 'random'
 PYBOSSA_SOURCE = 'pybossa'
 DEFAULT_SOURCE = RANDOM_SOURCE
-
 TASK_SOURCE = getattr(settings, 'MOONSHEEP_TASK_SOURCE', DEFAULT_SOURCE)
+
+# task redundancy - answers needed to crosscheck
+DEFAULT_REDUNDANCY = 3
+REDUNDANCY = getattr(settings, 'MOONSHEEP_TASK_REDUNDANCY', DEFAULT_REDUNDANCY)
 
 """
 If set Moonsheep won't communicate with PyBossa and will:

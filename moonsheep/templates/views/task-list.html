@@ -1,0 +1,75 @@
+{% extends "moonsheep_base.html" %}
+
+{% load moonsheep %}
+{% load static %}
+
+{% block content %}
+<div class="container" id="ms-content">
+  <div class="row justify-content-around">
+    <div class="col-3">
+      <a href="{% url 'ms-admin' %}">
+        <img class=img-fluid" id="ms-logo" src="{% static 'imgs/moonsheep-logo-transparent.png' %}" alt="moonsheep-logo" />
+      </a>
+    </div>
+    <div class="col-6">
+      <h2 id="ms-message-status">Stats</h2>
+    </div>
+  </div>
+  <div class="row justify-content-md-center">
+    <div class="col-4">
+      <h4><i class="fa fa-line-chart" aria-hidden="true"></i> Overall stats</h4>
+      <dl class="row">
+        <dt class="col-sm-7">Verified tasks</dt>
+        <dd class="col-sm-5">{{ verified_tasks }}</dd>
+        <dt class="col-sm-7">Transcripted documents</dt>
+        <dd class="col-sm-5">{{ transcripted_documents }}</dd>
+        <dt class="col-sm-7">Redundancy</dt>
+        <dd class="col-sm-5">{{ redundancy }}</dd>
+      </dl>
+    </div>
+    <div class="col-4">
+      <h4 class="mt-5"><i class="fa fa-download" aria-hidden="true"></i> Export data</h4>
+      <a href="#">json</a>
+      <a href="#">csv</a>
+    </div>
+  </div>
+  <div class="row justify-content-md-center">
+    <div class="col-8">
+      <h4 class="mt-5"><i class="fa fa-address-book" aria-hidden="true"></i> Report stats</h4>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <th>report</th>
+            <th>overall (%)</th>
+            {% for task_type in task_types %}
+            <th>{{ task_type.display }}</th>
+            {% endfor %}
+          </thead>
+          <tbody>
+            {% for report in reports %}
+            <tr>
+              <td>
+                <a href="{{ report|key:'url' }}">report #{{ forloop.counter }}</a>
+              </td>
+              <td>
+                {{ report|key:"percentage"|default:"?" }}
+              </td>
+              {% for task in report|key:"tasks" %}
+              <td>
+                {{ task|key:"percentage"|default:"?" }}
+                <small>({{ task|key:"completed" }}/{{ task|key:"required" }})</small>
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/stats.js' %}" type="application/javascript"></script>
+{% endblock %}

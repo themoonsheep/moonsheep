@@ -18,6 +18,7 @@ from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
 from .forms import NewTaskForm
+from .models import Task
 from .register import base_task, initial_task
 from .settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
@@ -80,7 +81,6 @@ class TaskView(FormView):
             return HttpResponseBadRequest('Missing _project_id field. Include moonsheep_token template tag!')
 
         self.task = self._get_task(
-            new=False,
             project_id=request.POST['_project_id'],
             task_id=request.POST['_task_id']
         )
@@ -162,10 +162,8 @@ class TaskView(FormView):
     # End of FormView override
     # ========================
 
-    def _get_task(self, new=True, project_id=None, task_id=None):
-        if new:
-            task_data = self._get_new_task()
-        else:
+    def _get_task(self, project_id=None, task_id=None):
+        if task_id:
             if TASK_SOURCE == RANDOM_SOURCE:
                 task_data = self.get_random_mocked_task_data(task_id)
             elif TASK_SOURCE == PYBOSSA_SOURCE:
@@ -175,6 +173,8 @@ class TaskView(FormView):
                 )[0]
             else:
                 raise TaskSourceNotDefined
+        else:
+            task_data = self._get_new_task()
         return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
 
     def _get_new_task(self):
@@ -203,7 +203,6 @@ class TaskView(FormView):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         if task_type is None:
             defined_tasks = base_task.registry
-            defined_tasks.sort()
 
             if not defined_tasks:
                 raise NotImplementedError(
@@ -214,7 +213,8 @@ class TaskView(FormView):
             TaskView.__mocked_task_counter += 1
             if TaskView.__mocked_task_counter >= len(defined_tasks):
                 TaskView.__mocked_task_counter = 0
-            task_type = defined_tasks[TaskView.__mocked_task_counter]
+            task = defined_tasks[TaskView.__mocked_task_counter]()
+            task_type = task.full_klass_name()
 
         default_params = {
             'info': {
@@ -225,7 +225,8 @@ class TaskView(FormView):
             'project_id': 'https://i.imgflip.com/hkimf.jpg'
         }
 
-        task = AbstractTask.create_task_instance(task_type, **default_params)
+        if not task:
+            task = AbstractTask.create_task_instance(task_type, **default_params)
         # Check if developers don't want to test out tasks with mocked data
         if hasattr(task, 'create_mocked_task') and callable(task.create_mocked_task):
             return task.create_mocked_task(default_params)
@@ -265,7 +266,12 @@ class TaskView(FormView):
         user_ip = self.request.META.get(
             'HTTP_X_FORWARDED_FOR', self.request.META.get('REMOTE_ADDR')
         ).split(',')[-1].strip()
-        return pbclient.create_taskrun(PYBOSSA_PROJECT_ID, self.task.id, data, user_ip)
+        return pbclient.create_taskrun(
+            project_id=PYBOSSA_PROJECT_ID,
+            task_id=self.task.id,
+            info=data,
+            # external_uid=user_ip
+        )
 
 
 class AdminView(TemplateView):
@@ -290,25 +296,105 @@ class NewTaskFormView(FormView):
             pbclient.create_task(
                 project_id=PYBOSSA_PROJECT_ID,
                 info={
-                    'type': task,
+                    'type': task().full_klass_name(),
                     'url': form.cleaned_data.get('url'),
                 },
-                n_answers=1
+                n_answers=AbstractTask.N_ANSWERS
             )
         return super(NewTaskFormView, self).form_valid(form)
 
 
 class TaskListView(TemplateView):
-    template_name = 'views/stats.html'
+    template_name = 'views/task-list.html'
 
     def get_context_data(self, **kwargs):
         context = super(TaskListView, self).get_context_data(**kwargs)
-        context['tasks'] = base_task.registry
+        task_types = base_task.registry
+        task_types_str = [task().full_klass_name() for task in base_task.registry]
+        # TODO: in pybossa always offset 0 limit 100
+        pb_tasks = pbclient.get_tasks(project_id=PYBOSSA_PROJECT_ID)
+        pb_taskruns = pbclient.get_taskruns(project_id=PYBOSSA_PROJECT_ID)
+        # TODO: this is spaghetti design, needs optimization
+        tasks = {}
+        reports = {}
+        for task in pb_tasks:
+            new_task = AbstractTask.create_task_instance(task.data['info']['type'], **task.data)
+            task_name = new_task.full_klass_name()
+            if new_task.url not in reports:
+                reports[new_task.url] = dict.fromkeys(task_types_str)
+            if reports[new_task.url][task_name] is None:
+                reports[new_task.url][task_name] = {}
+            if new_task.id not in reports[new_task.url][task_name]:
+                reports[new_task.url][task_name][new_task.id] = {
+                    'task': None,
+                    'taskruns': [],
+                }
+            tasks[new_task.id] = task_name
+            reports[new_task.url][task_name][new_task.id]['task'] = new_task
+            reports[new_task.url][task_name][new_task.id]['taskruns'] = []
+        for taskrun in pb_taskruns:
+            reports[
+                taskrun.data['info']['_url']
+            ][
+                tasks[int(taskrun.data['info']['_task_id'])].__str__()
+            ][
+                int(taskrun.data['info']['_task_id'])
+            ]['taskruns'].\
+                append(taskrun.data)
+        report_data = []
+        transcripted_documents = 0
+        verified_tasks = 0
+        for url, report in reports.items():
+            report_table_data = []
+            step = 100 / len(report)
+            overall_percentage = 0
+            # TODO: this will probably not work with OPORA
+            # TODO: "required" should be multiplied by number of tasks
+            for task_klass, task_data in report.items():
+                if task_data:
+                    for task_id, params in task_data.items():
+                        completed = len(params['taskruns'])
+                        overall_percentage += completed * step
+                        required = AbstractTask.N_ANSWERS
+                        if completed == required:
+                            verified_tasks += 1
+                        try:
+                            percentage = "{0:.1f}%".format(100 * completed / required)
+                        except ZeroDivisionError:
+                            required = '?'
+                            percentage = '?'
+                        report_table_data.append({
+                            'task_class': task_klass,
+                            'required': required,
+                            'completed': completed,
+                            'percentage': percentage
+                        })
+            if verified_tasks == len(report):
+                transcripted_documents += 1
+            report_table_data.sort(key=lambda k: task_types_str.index(k['task_class']))
+            report_data.append({
+                'url': url,
+                'percentage': "{0:.1f}%".format(overall_percentage),
+                'tasks': report_table_data
+            })
+        context.update({
+            'verified_tasks': verified_tasks,
+            'transcripted_documents': transcripted_documents,
+            'redundancy': AbstractTask.N_ANSWERS,
+            'task_types': task_types,
+            'reports': report_data
+        })
         return context
 
 
 class ManualVerificationView(TemplateView):
     template_name = 'views/manual-verification.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(ManualVerificationView, self).get_context_data(**kwargs)
+        context['tasks'] = Task.objects.filter(verified=False)
+        print(context['tasks'])
+        return context
 
 
 class WebhookTaskRunView(View):
