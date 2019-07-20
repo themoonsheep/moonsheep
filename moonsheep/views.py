@@ -18,7 +18,7 @@ from .exceptions import (
     PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
 from .forms import NewTaskForm
-from .register import base_task, initial_task
+from . import registry
 from .settings import (
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID
@@ -202,8 +202,7 @@ class TaskView(FormView):
     def get_random_mocked_task_data(self, task_type=None):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         if task_type is None:
-            defined_tasks = base_task.registry
-            defined_tasks.sort()
+            defined_tasks = registry.TASK_NAMES
 
             if not defined_tasks:
                 raise NotImplementedError(
@@ -303,7 +302,7 @@ class TaskListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(TaskListView, self).get_context_data(**kwargs)
-        context['tasks'] = base_task.registry
+        context['tasks'] = registry.TASK_NAMES
         return context
 
 

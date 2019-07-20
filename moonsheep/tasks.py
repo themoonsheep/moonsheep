@@ -3,6 +3,7 @@ import pbclient
 
 from .models import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
+from .registry import register_task # pylint: disable=unused-import # For easier import in apps
 from .settings import (
     TASK_SOURCE, RANDOM_SOURCE
 )
