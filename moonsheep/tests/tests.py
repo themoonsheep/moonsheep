@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch, sentinel, call
 
 from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft, TaskSourceNotDefined
 from moonsheep.forms import NewTaskForm, MultipleRangeField
-from moonsheep.models import ModelMapper
+from moonsheep.mapper import ModelMapper
 from moonsheep.register import base_task, initial_task
 from moonsheep.settings import PYBOSSA_SOURCE, RANDOM_SOURCE
 from moonsheep.tasks import AbstractTask
