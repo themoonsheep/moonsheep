@@ -1,5 +1,6 @@
 import logging
 import pbclient
+from django.db import transaction
 
 from .mapper import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
@@ -70,11 +71,12 @@ class AbstractTask(object):
         self.verified = confidence >= MIN_CONFIDENCE
         if self.verified:
             # save verified data
-            self.save_verified_data(crosschecked)
-            # create new tasks
-            self.after_save(crosschecked)
-            # pbclient.delete_task(self.id)
-            return True
+            with transaction.atomic():
+                self.save_verified_data(crosschecked)
+                # create new tasks
+                self.after_save(crosschecked)
+
+                return True
         else:
             # TODO: do something here
             return False
