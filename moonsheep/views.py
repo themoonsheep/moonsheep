@@ -20,14 +20,16 @@ from .exceptions import (
 from .forms import NewTaskForm
 from . import registry
 from .settings import (
+    MOONSHEEP,
     RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID
 )
 from .tasks import AbstractTask
+from .models import Task, Entry
 
 
 class TaskView(FormView):
-    task = None
+    task = None # TODO refactor: rename to task_type
     form_class = None
     error_message = None
     error_template = None
@@ -44,7 +46,7 @@ class TaskView(FormView):
         :return: path to the template (string) or Django's Form class
         """
         try:
-            self.task = self._get_task()
+            self.task = self._get_new_task()
             self.initialize_task_data()
         except NoTasksLeft:
             self.error_message = 'Broker returned no tasks'
@@ -79,16 +81,13 @@ class TaskView(FormView):
         if '_project_id' not in request.POST:
             return HttpResponseBadRequest('Missing _project_id field. Include moonsheep_token template tag!')
 
-        self.task = self._get_task(
-            new=False,
-            project_id=request.POST['_project_id'],
-            task_id=request.POST['_task_id']
-        )
-
+        # TODO rename it to task_type, keep task_id separate
+        self.task = self._get_task(request.POST['_task_id'], request.POST['_project_id'])
         self.initialize_task_data()
+
         form = self.get_form()
 
-        # no form defined in the task
+        # no form defined in the task, no field validation then, but we continue
         if form is None:
             data = unpack_post(request.POST)
             # TODO what to do if we have forms defined? is Django nested formset a way to go?
@@ -97,6 +96,7 @@ class TaskView(FormView):
             self._send_task(data)
             return HttpResponseRedirect(self.get_success_url())
 
+        # there is a task's form defined, validate fields with it
         if form.is_valid():
             return self.form_valid(form)
         else:
@@ -123,6 +123,8 @@ class TaskView(FormView):
         return context
 
     def initialize_task_data(self):
+        # TODO maybe merge with _get_task (but check if it work for tests)
+        # TODO refactor: rename configure_template_and_form
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
 
@@ -132,7 +134,7 @@ class TaskView(FormView):
 
         self.form_class = getattr(self.task, 'task_form', None)
 
-        if not self.template_name:
+        if not self.template_name: # TODO move two lines above
             raise TaskMustSetTemplate(self.task.__class__)
 
     # =====================
@@ -162,47 +164,43 @@ class TaskView(FormView):
     # End of FormView override
     # ========================
 
-    def _get_task(self, new=True, project_id=None, task_id=None):
-        if new:
-            task_data = self._get_new_task()
+    def _get_task(self, task_id, project_id=None):
+        if MOONSHEEP['DEV_ROTATE_TASKS']:
+            task_data = self.get_random_mocked_task_data(task_id) # TODO task_type should be here, as there is no id, or are we mocking id also?
+
         else:
-            if TASK_SOURCE == RANDOM_SOURCE:
-                task_data = self.get_random_mocked_task_data(task_id)
-            elif TASK_SOURCE == PYBOSSA_SOURCE:
-                task_data = pbclient.get_task(
-                    project_id=project_id,
-                    task_id=task_id
-                )[0]
-            else:
-                raise TaskSourceNotDefined
+            task_data = pbclient.get_task(
+                project_id=project_id,
+                task_id=task_id
+            )[0]
+
         return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
 
-    def _get_new_task(self):
+    def _get_new_task(self) -> AbstractTask:
         """
-        Mechanism responsible for getting tasks. Points to PyBossa API and collects task.
+        Mechanism responsible for getting tasks to execute.
         Task structure contains type, url and metadata that might be displayed in template.
 
         :rtype: AbstractTask
         :return: user's implementation of AbstractTask object
         """
-        if TASK_SOURCE == RANDOM_SOURCE:
-            task = self.get_random_mocked_task_data()
-        elif TASK_SOURCE == PYBOSSA_SOURCE:
-            task = self.get_random_pybossa_task()
-        else:
-            raise TaskSourceNotDefined
+        if MOONSHEEP['DEV_ROTATE_TASKS']:
+            task_data = self.get_random_mocked_task_data()
 
-        if not task:
+        else:
+            task_data = self.get_random_pybossa_task()
+
+        if not task_data:
             raise NoTasksLeft
 
-        return task
+        return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
 
     __mocked_task_counter = 0
 
     def get_random_mocked_task_data(self, task_type=None):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
         if task_type is None:
-            defined_tasks = registry.TASK_NAMES
+            defined_tasks = registry.TASK_TYPES
 
             if not defined_tasks:
                 raise NotImplementedError(
@@ -216,7 +214,7 @@ class TaskView(FormView):
             task_type = defined_tasks[TaskView.__mocked_task_counter]
 
         default_params = {
-            'info': {
+            'info': { # TODO provide a document from the app
                 "url": "https://nazk.gov.ua/sites/default/files/docs/2017/3/3_kv/2/Agrarna_partija/3%20%EA%E2%E0%F0%F2%E0%EB%202017%20%D6%C0%20%C0%CF%D3%20%97%20%E7%E0%F2%E5%F0%F2%E8%E9.pdf",
                 "type": task_type,
             },
@@ -231,7 +229,7 @@ class TaskView(FormView):
         else:
             return default_params
 
-    def get_random_pybossa_task(self):
+    def get_random_pybossa_task(self): # TODO refactor: rename to choose_a_task()
         """
         Method for obtaining task structure from distant source, i.e. PyBossa
 
@@ -246,25 +244,20 @@ class TaskView(FormView):
                 "PYBOSSA_PROJECT_ID = {1}".format(PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID)
             )
 
-    def _send_task(self, data):
+    def _send_task(self, data):  # TODO refactor: rename _save_entry
         """
-        Mechanism responsible for sending tasks. Points to PyBossa API taskrun and sends data from form.
+        Save entry in the database
         """
-        if TASK_SOURCE == RANDOM_SOURCE:
-            # In development let's take a shortcut straight to verification
-            taskruns_list = [data]
-            self.task.verify_and_save(taskruns_list)
-            return
-        elif TASK_SOURCE == PYBOSSA_SOURCE:
-            self.send_pybossa_task(data)
-        else:
-            raise TaskSourceNotDefined()
+        # TODO
+        task_id = None
+        user = None
 
-    def send_pybossa_task(self, data):
-        user_ip = self.request.META.get(
+        Entry(task_id=task_id, user=user, data=data).save()
+
+    def _get_user_ip(self):
+        return self.request.META.get(
             'HTTP_X_FORWARDED_FOR', self.request.META.get('REMOTE_ADDR')
         ).split(',')[-1].strip()
-        return pbclient.create_taskrun(PYBOSSA_PROJECT_ID, self.task.id, data, user_ip)
 
 
 class AdminView(TemplateView):
@@ -302,7 +295,7 @@ class TaskListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(TaskListView, self).get_context_data(**kwargs)
-        context['tasks'] = registry.TASK_NAMES
+        context['tasks'] = registry.TASK_TYPES
         return context
 
 

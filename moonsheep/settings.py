@@ -1,4 +1,8 @@
-# TODO move away from pybossa
+# TODO move away from pybossa, delete this fully
+
+MOONSHEEP = {
+    'DEV_ROTATE_TASKS': False
+}
 
 TASK_SOURCE = 'random'
 RANDOM_SOURCE = 'random'

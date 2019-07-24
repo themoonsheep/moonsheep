@@ -1,89 +1,105 @@
-import importlib
-import inspect
+from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.models import User, AbstractUser
+from django.db import models
+from django.utils.translation import ugettext as _
+from django.core import validators
+from .registry import TASK_TYPES
 import json
-from typing import Callable
-
-from django.core import serializers
-from django.db import models as dmodels
+from django.core.serializers.json import DjangoJSONEncoder
 
 
-class ModelMapper:
-    def __init__(self, klass, data, **kwargs):
-        def default_getter(param_name:str):
-            return data[param_name].strip()
+class JSONField(models.TextField):
+    """
+    JSONField is a generic textfield that neatly serializes/unserializes
+    JSON objects seamlessly.
+    Django snippet #1478, Credit: https://stackoverflow.com/a/41839021/803174
 
-        self.klass = klass
-        self.fields = {}
-        self.getter = default_getter
+    example:
+        class Page(models.Model):
+            data = JSONField(blank=True, null=True)
 
-        allowed_keys = ['getter']
-        for k, v in kwargs.items():
-            if k not in allowed_keys:
-                raise Exception("ModelMapper doesn't allow argument '{}'".format(k))
-            self.__setattr__(k, v)
 
-    def map_one(self, fld_name: str, param_name: str=None,
-             convert: Callable=lambda x: x, missing: Callable=None):
-        if param_name is None:
-            param_name = fld_name
+        page = Page.objects.get(pk=5)
+        page.data = {'title': 'test', 'type': 3}
+        page.save()
+    """
+
+    def to_python(self, value):
+        if value == "":
+            return None
+
         try:
-            v = self.getter(param_name)
-        except KeyError:
-            if missing is not None:
-                self.fields[fld_name] = missing()
-            return self
+            if isinstance(value, str):
+                # TODO test datetime saving `object_hook`
+                return json.loads(value, cls=DjangoJSONEncoder)
+        except ValueError:
+            pass
+        return value
 
-        if v is not None and v != '':
-            self.fields[fld_name] = convert(v)
+    def from_db_value(self, value, *args):
+        return self.to_python(value)
 
-        return self
-
-    def map(self, exclude=[], rename: dict={}):
-        for f in self.klass._meta.get_fields():
-            if f.name in exclude:
-                continue
-
-            convert = lambda x: x
-            missing = None
-
-            if isinstance(f, dmodels.BooleanField):
-                convert = lambda x: bool(x)
-                # checkboxes won't be in POST if they are not checked
-                # TODO how does it affect processing forms?
-                missing = lambda: False
-
-            elif isinstance(f, dmodels.NullBooleanField):
-                convert = lambda x: bool(x)
-
-            elif isinstance(f, dmodels.IntegerField):
-                convert = lambda x: int(x)
-
-            elif isinstance(f, dmodels.DecimalField):
-                convert = lambda x: float(x)
-
-            self.map_one(f.name, rename.get(f.name, f.name), convert=convert, missing=missing)
-
-        return self
-
-    def create(self, **extras):
-        params = self.fields
-        params.update(extras)
-        return self.klass(**params)
+    def get_db_prep_save(self, value, *args, **kwargs):
+        if value == "":
+            return None
+        if isinstance(value, dict):
+            value = json.dumps(value, cls=DjangoJSONEncoder)
+        return value
 
 
-def klass_from_name(name):
-    parts = name.split('.')
-    module_name, class_name = '.'.join(parts[:-1]), parts[-1]
-    try:
-        module_path = importlib.import_module(module_name)
-        klass = getattr(module_path, class_name)
-    except (ImportError, AttributeError) as e:
-        raise Exception("Couldn't import class {}".format(name)) from e
-    return klass
+class Task(models.Model):
+    """
+    A specific Task that users will work on.
+
+    It is uniquely defined by task class/type and params
+    """
+
+    type = models.CharField(verbose_name=_("Type"), max_length=255, choices=[(t, t) for t in TASK_TYPES])
+    """Full reference (with module) to task class name"""
+
+    params = JSONField(blank=True)
+    """Params specifying the task, that will be passed to user"""
+
+    priority = models.DecimalField(decimal_places=2, max_digits=3, validators=[validators.MaxValueValidator(1.0),
+                                                                               validators.MinValueValidator(0.0)])
+    """Priority of the task, set manually or computed by defined functionD from other fields. Scale: 0.0 - 1.0"""
+
+    # Statuses
+    OPEN = 'open'
+    DIRTY = 'dirty'
+    CROSSCHECKED = 'checked'
+    CLOSED_MANUALLY = 'manual'
+
+    status = models.CharField(max_length=10, choices=[(s, s) for s in [OPEN, DIRTY, CROSSCHECKED, CLOSED_MANUALLY]])
+
+    class Meta:
+        constraints = [
+            # Type and params fully define an unique task
+            models.UniqueConstraint(fields=['type', 'params'], name='unique_type_params')
+        ]
+        indexes = [
+            # TODO based on queries, most likely: models.Index(fields=['status', 'priority']),
+        ]
+
+    def __str__(self):
+        return self.type + self.params
 
 
-def export_model(format_name, model_name):
-    model = klass_from_name(model_name)
-    data = json.loads(serializers.serialize(format_name, model.objects.all()))
-    model_data = [obj['fields'] for obj in data]
-    return model_data
+class Entry(models.Model, ModelBackend):
+    task = models.ForeignKey(Task, models.CASCADE)
+    user = models.ForeignKey(User, models.CASCADE)
+    data = JSONField()
+
+    class Meta:
+        constraints = [
+            # There can be only one user's entry for given task. Django doesn't support compound keys
+            models.UniqueConstraint(fields=['task', 'user'], name='unique_task_user')
+        ]
+
+# TODO Research how to best organize users
+# https://docs.djangoproject.com/en/2.2/topics/auth/customizing/
+# Custom user: https://www.fomfus.com/articles/how-to-use-email-as-username-for-django-authentication-removing-the-username
+# Custom backend: https://stackoverflow.com/a/37332393/803174
+
+# class User(AbstractUser):
+#     pass
