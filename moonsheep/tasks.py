@@ -32,7 +32,6 @@ class AbstractTask(object):
                 self.task_form = klass_from_name(info.get('task_form'))
             if 'template_name' in info:
                 self.template_name = info.get('template_name')
-            # if type == "pybossa_task"
 
     def get_presenter(self):
         """

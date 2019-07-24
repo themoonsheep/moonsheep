@@ -163,30 +163,6 @@ class TaskViewTest(DjangoTestCase):
     @patch('moonsheep.views.TaskView._get_task')
     @patch('moonsheep.views.TaskView.initialize_task_data')
     @patch('moonsheep.views.TaskView.get_context_data')
-    def test_get_improperly_configured(
-            self,
-            get_context_data_mock: MagicMock,
-            _get_form_class_data_mock: MagicMock,
-            _get_task_mock: MagicMock
-    ):
-        _get_task_mock.side_effect = ImproperlyConfigured
-        request = self.factory.get(self.fake_path)
-        view = TaskView()
-        view = setup_view(view, request, **self.task_data)
-        view.task = AbstractTask()
-        view.template_name = self.template_name
-        response = view.get(request)
-        self.assertEqual(view.task, None)
-        self.assertEqual(view.error_message, 'Improperly configured PyBossa')
-        self.assertEqual(view.error_template, 'error-messages/improperly-configured.html')
-        self.assertEqual(response.status_code, 200)
-        _get_task_mock.assert_any_call()
-        _get_form_class_data_mock.assert_not_called()
-        get_context_data_mock.assert_any_call()
-
-    @patch('moonsheep.views.TaskView._get_task')
-    @patch('moonsheep.views.TaskView.initialize_task_data')
-    @patch('moonsheep.views.TaskView.get_context_data')
     def test_get_presenter_not_defined(
             self,
             get_context_data_mock: MagicMock,

@@ -1,3 +1,5 @@
+from random import random
+
 import dpath.util
 import json
 import pbclient
@@ -12,17 +14,12 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView
 
-from requests.exceptions import ConnectionError
-
 from .exceptions import (
     PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
 from .forms import NewTaskForm
 from . import registry
-from .settings import (
-    MOONSHEEP,
-    PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID
-)
+from .settings import MOONSHEEP
 from .tasks import AbstractTask
 from .models import Task, Entry
 
@@ -50,11 +47,6 @@ class TaskView(FormView):
         except NoTasksLeft:
             self.error_message = 'Broker returned no tasks'
             self.error_template = 'error-messages/no-tasks.html'
-            self.task_type = None
-            self.template_name = 'views/message.html'
-        except ImproperlyConfigured:
-            self.error_message = 'Improperly configured PyBossa'
-            self.error_template = 'error-messages/improperly-configured.html'
             self.task_type = None
             self.template_name = 'views/message.html'
         except PresenterNotDefined:
@@ -104,8 +96,7 @@ class TaskView(FormView):
     def get_context_data(self, **kwargs):
         context = super(TaskView, self).get_context_data(**kwargs)
         context.update({
-            'project_id': PYBOSSA_PROJECT_ID,
-            'pybossa_url': PYBOSSA_BASE_URL
+            'project_id': 'fake it'  # TODO remove it everywhere
         })
         if self.task_type:
             context['task'] = self.task_type
@@ -227,20 +218,20 @@ class TaskView(FormView):
         else:
             return default_params
 
-    def choose_a_task(self):
+    def choose_a_task(self) -> Task:
         """
-        Method for obtaining task structure
+        Choose a task to be served to user
+        """
+        # TODO make it pluggable / create interface for it
+        tasks = Task.objects.filter(state=Task.OPEN).order_by('-priority')[:20]
 
-        :rtype: dict
-        :return: task structure
-        """
-        try:
-            return pbclient.get_new_task(PYBOSSA_PROJECT_ID)
-        except ConnectionError:
-            raise ImproperlyConfigured(
-                "Please check if PyBossa is running and properly set. Current settings: PYBOSSA_URL = {0}, "
-                "PYBOSSA_PROJECT_ID = {1}".format(PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID)
-            )
+        if not tasks:
+            raise NoTasksLeft()
+
+        # choose task at random, so everyone won't get the same task
+        # TODO otherwise an "open_count" could help to limit it,
+        #  especially where there are a lot of volunteers and long tasks
+        return tasks[random.choice()]
 
     def _save_entry(self, data) -> None:
         """
@@ -267,24 +258,12 @@ class NewTaskFormView(FormView):
     form_class = NewTaskForm
 
     def get_success_url(self):
-        return reverse('ms-new-task')
+        return reverse('ms-new-task') # TODO namespace not needed in app, right? remove ms-
 
     def form_valid(self, form):
-        import pbclient
-        from moonsheep.settings import PYBOSSA_BASE_URL, PYBOSSA_API_KEY
-        pbclient.set('endpoint', PYBOSSA_BASE_URL)
-        pbclient.set('api_key', PYBOSSA_API_KEY)
-        if not len(initial_task.registry):
-            raise ImproperlyConfigured
-        for task in initial_task.registry:
-            pbclient.create_task(
-                project_id=PYBOSSA_PROJECT_ID,
-                info={
-                    'type': task,
-                    'url': form.cleaned_data.get('url'),
-                },
-                n_answers=1
-            )
+        form.cleaned_data.get('url'),
+        # TODO implement importing documents
+
         return super(NewTaskFormView, self).form_valid(form)
 
 
@@ -308,7 +287,7 @@ class WebhookTaskRunView(View):
         return super(WebhookTaskRunView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        # empty response so pybossa can set webhook to this endpoint
+        # empty response so pybossa can set webhook to this endpoint # TODO
         return HttpResponse(status=200)
 
     def post(self, request):
