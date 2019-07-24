@@ -1,21 +1,10 @@
 # TODO move away from pybossa, delete this fully
 
+# A tested solution for importing & overriding settings: https://github.com/encode/django-rest-framework/blob/master/rest_framework/settings.py
 MOONSHEEP = {
     'DEV_ROTATE_TASKS': False
 }
 
-TASK_SOURCE = 'random'
-RANDOM_SOURCE = 'random'
-PYBOSSA_SOURCE = 'pybossa'
-
-# import pbclient
-#
-# from django.conf import settings
-# # tasks sources
-# RANDOM_SOURCE = 'random'
-# PYBOSSA_SOURCE = 'pybossa'
-# DEFAULT_SOURCE = RANDOM_SOURCE
-#
 # TASK_SOURCE = getattr(settings, 'MOONSHEEP_TASK_SOURCE', DEFAULT_SOURCE)
 #
 # """

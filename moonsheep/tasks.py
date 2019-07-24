@@ -6,7 +6,7 @@ from .mapper import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
 from .registry import register_task # NOQA # pylint: disable=unused-import # For easier import in apps
 from .settings import (
-    TASK_SOURCE, RANDOM_SOURCE
+    MOONSHEEP
 )
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,8 @@ class AbstractTask(object):
         # TODO: maybe we should reserve '_type' ?
         info['type'] = ".".join([task.__module__, task.__name__])
 
-        if TASK_SOURCE == RANDOM_SOURCE:
+        if MOONSHEEP['DEV_ROTATE_TASKS']:
+            # TODO this is not true, we might create tasks
             logger.info("Skipping task creation because TASK_SOURCE is set to random: " + repr(info))
         else:
             return pbclient.create_task(self.project_id, info, self.N_ANSWERS)

@@ -10,10 +10,6 @@ class TaskMustSetTemplate(Exception):
         return "Task {} must define template_name.".format(self.klass)
 
 
-class TaskSourceNotDefined(Exception):
-    pass
-
-
 class NoTasksLeft(Exception):
     pass
 

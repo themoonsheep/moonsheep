@@ -10,11 +10,10 @@ from django.urls import reverse
 from unittest import TestCase as UnitTestCase
 from unittest.mock import MagicMock, patch, sentinel, call
 
-from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft, TaskSourceNotDefined
+from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft
 from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.mapper import ModelMapper
 from moonsheep.register import base_task, initial_task
-from moonsheep.settings import PYBOSSA_SOURCE, RANDOM_SOURCE
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
 from moonsheep.views import unpack_post, TaskView, NewTaskFormView, WebhookTaskRunView
@@ -374,7 +373,7 @@ class TaskViewTest(DjangoTestCase):
         view = TaskView()
         view = setup_view(view, request)
         view.task = AbstractTask(**self.task_data)
-        view.initialize_task_data()
+        view.configure_template_and_form()
         # TODO: divide to 2 test cases
         # self.assertEqual(view.template_name, self.task_data.get('info').get('template_name'))
         self.assertEqual(view.template_name, self.task_data.get('info').get('template_name'))
@@ -384,7 +383,7 @@ class TaskViewTest(DjangoTestCase):
         request = self.factory.get(self.fake_path)
         view = TaskView()
         view = setup_view(view, request)
-        self.assertRaises(TaskMustSetTemplate, view.initialize_task_data)
+        self.assertRaises(TaskMustSetTemplate, view.configure_template_and_form)
 
     def test_get_form_class(self):
         # TODO
@@ -477,16 +476,6 @@ class TaskViewTest(DjangoTestCase):
     #     # self.assertEqual(task, get_random_mocked_task_data_mock)
 
     # TODO: FIXME
-    # @override_settings(TASK_SOURCE='error-source')
-    # def test_get_new_task_not_defined(self):
-    #     from moonsheep.settings import TASK_SOURCE
-    #     request = self.factory.get(self.fake_path)
-    #     view = TaskView()
-    #     view = setup_view(view, request)
-    #     with self.assertRaises(TaskSourceNotDefined):
-    #         view._get_new_task()
-
-    # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_mocked_task_data')
     # @override_settings(TASK_SOURCE=RANDOM_SOURCE)
     # def test_get_new_task_no_tasks(self, get_random_mocked_task_data_mock: MagicMock):
@@ -542,9 +531,6 @@ class TaskViewTest(DjangoTestCase):
     #         view.get_random_pybossa_task()
 
     def test_send_task(self):
-        pass
-
-    def test_send_pybossa_task(self):
         pass
 
 

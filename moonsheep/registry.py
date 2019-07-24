@@ -3,7 +3,7 @@
 from contextlib import contextmanager
 
 # TODO won't dict with actual classes be helpful here?
-TASK_NAMES = []
+TASK_TYPES = []
 
 
 def register(task_class):
@@ -11,15 +11,15 @@ def register(task_class):
     if not issubclass(task_class, AbstractTask):
         raise ValueError('Task_class must subclass AbstractTask')
 
-    if task_class not in TASK_NAMES:
-        TASK_NAMES.append(task_class.__module__ + '.' + task_class.__name__)
+    if task_class not in TASK_TYPES:
+        TASK_TYPES.append(task_class.__module__ + '.' + task_class.__name__)
 
     return task_class
 
 
 def unregister(task_class):
-    if task_class in TASK_NAMES:
-        TASK_NAMES.remove(task_class.__module__ + '.' + task_class.__name__)
+    if task_class in TASK_TYPES:
+        TASK_TYPES.remove(task_class.__module__ + '.' + task_class.__name__)
 
 
 @contextmanager

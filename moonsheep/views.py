@@ -15,13 +15,12 @@ from django.views.generic import FormView, TemplateView
 from requests.exceptions import ConnectionError
 
 from .exceptions import (
-    PresenterNotDefined, TaskSourceNotDefined, NoTasksLeft, TaskMustSetTemplate
+    PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate
 )
 from .forms import NewTaskForm
 from . import registry
 from .settings import (
     MOONSHEEP,
-    RANDOM_SOURCE, PYBOSSA_SOURCE, TASK_SOURCE,
     PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID
 )
 from .tasks import AbstractTask
@@ -29,7 +28,7 @@ from .models import Task, Entry
 
 
 class TaskView(FormView):
-    task = None # TODO refactor: rename to task_type
+    task_type = None
     form_class = None
     error_message = None
     error_template = None
@@ -46,22 +45,22 @@ class TaskView(FormView):
         :return: path to the template (string) or Django's Form class
         """
         try:
-            self.task = self._get_new_task()
-            self.initialize_task_data()
+            self.task_type = self._get_new_task()
+            self.configure_template_and_form()
         except NoTasksLeft:
             self.error_message = 'Broker returned no tasks'
             self.error_template = 'error-messages/no-tasks.html'
-            self.task = None
+            self.task_type = None
             self.template_name = 'views/message.html'
         except ImproperlyConfigured:
             self.error_message = 'Improperly configured PyBossa'
             self.error_template = 'error-messages/improperly-configured.html'
-            self.task = None
+            self.task_type = None
             self.template_name = 'views/message.html'
         except PresenterNotDefined:
             self.error_message = 'Presenter not defined'
             self.error_template = 'error-messages/presenter-not-defined.html'
-            self.task = None
+            self.task_type = None
             self.template_name = 'views/message.html'
 
         context = self.get_context_data(**kwargs)
@@ -78,12 +77,12 @@ class TaskView(FormView):
         if '_task_id' not in request.POST:
             return HttpResponseBadRequest('Missing _task_id field. Include moonsheep_token template tag!')
 
-        if '_project_id' not in request.POST:
-            return HttpResponseBadRequest('Missing _project_id field. Include moonsheep_token template tag!')
+        if '_task_type' not in request.POST:
+            return HttpResponseBadRequest('Missing _task_type field. Include moonsheep_token template tag!')
 
-        # TODO rename it to task_type, keep task_id separate
-        self.task = self._get_task(request.POST['_task_id'], request.POST['_project_id'])
-        self.initialize_task_data()
+        # TODO keep task_id separate
+        self.task_type = self._get_task(request.POST['_task_id'], request.POST['_project_id'])
+        self.configure_template_and_form()
 
         form = self.get_form()
 
@@ -93,7 +92,7 @@ class TaskView(FormView):
             # TODO what to do if we have forms defined? is Django nested formset a way to go?
             # Check https://stackoverflow.com/questions/20894629/django-nested-inline-formsets
             # Check https://docs.djangoproject.com/en/2.0/ref/contrib/admin/#django.contrib.admin.InlineModelAdmin
-            self._send_task(data)
+            self._save_entry(data)
             return HttpResponseRedirect(self.get_success_url())
 
         # there is a task's form defined, validate fields with it
@@ -108,10 +107,10 @@ class TaskView(FormView):
             'project_id': PYBOSSA_PROJECT_ID,
             'pybossa_url': PYBOSSA_BASE_URL
         })
-        if self.task:
-            context['task'] = self.task
+        if self.task_type:
+            context['task'] = self.task_type
             try:
-                context['presenter'] = self.task.get_presenter()
+                context['presenter'] = self.task_type.get_presenter()
             except TypeError:
                 raise PresenterNotDefined
         else:
@@ -122,27 +121,26 @@ class TaskView(FormView):
             })
         return context
 
-    def initialize_task_data(self):
+    def configure_template_and_form(self):
         # TODO maybe merge with _get_task (but check if it work for tests)
-        # TODO refactor: rename configure_template_and_form
         # Template showing a task: presenter and the form, can be overridden by setting task_template in your Task
         # By default it uses moonsheep/templates/task.html
 
         # Overriding template
-        if hasattr(self.task, 'template_name'):
-            self.template_name = self.task.template_name
+        if hasattr(self.task_type, 'template_name'):
+            self.template_name = self.task_type.template_name
 
-        self.form_class = getattr(self.task, 'task_form', None)
+        if not self.template_name:
+            raise TaskMustSetTemplate(self.task_type.__class__)
 
-        if not self.template_name: # TODO move two lines above
-            raise TaskMustSetTemplate(self.task.__class__)
+        self.form_class = getattr(self.task_type, 'task_form', None)
 
     # =====================
     # Override FormView to adapt for a case when user hasn't defined form for a given task
     # and to process form in our own manner
 
     def get_form_class(self):
-        return self.task.task_form if hasattr(self.task, 'task_form') else None
+        return self.task_type.task_form if hasattr(self.task_type, 'task_form') else None
 
     def get_form(self, form_class=None):
         """Return an instance of the form to be used in this view.
@@ -158,7 +156,7 @@ class TaskView(FormView):
         return form_class(**self.get_form_kwargs())
 
     def form_valid(self, form):
-        self._send_task(form.cleaned_data)
+        self._save_entry(form.cleaned_data)
         return super(TaskView, self).form_valid(form)
 
     # End of FormView override
@@ -188,7 +186,7 @@ class TaskView(FormView):
             task_data = self.get_random_mocked_task_data()
 
         else:
-            task_data = self.get_random_pybossa_task()
+            task_data = self.choose_a_task()
 
         if not task_data:
             raise NoTasksLeft
@@ -229,9 +227,9 @@ class TaskView(FormView):
         else:
             return default_params
 
-    def get_random_pybossa_task(self): # TODO refactor: rename to choose_a_task()
+    def choose_a_task(self):
         """
-        Method for obtaining task structure from distant source, i.e. PyBossa
+        Method for obtaining task structure
 
         :rtype: dict
         :return: task structure
@@ -244,7 +242,7 @@ class TaskView(FormView):
                 "PYBOSSA_PROJECT_ID = {1}".format(PYBOSSA_BASE_URL, PYBOSSA_PROJECT_ID)
             )
 
-    def _send_task(self, data):  # TODO refactor: rename _save_entry
+    def _save_entry(self, data) -> None:
         """
         Save entry in the database
         """
