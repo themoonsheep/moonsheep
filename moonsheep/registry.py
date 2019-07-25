@@ -12,14 +12,14 @@ def register(task_class):
         raise ValueError('Task_class must subclass AbstractTask')
 
     if task_class not in TASK_TYPES:
-        TASK_TYPES.append(task_class.__module__ + '.' + task_class.__name__)
+        TASK_TYPES.append(task_class.name)
 
     return task_class
 
 
 def unregister(task_class):
     if task_class in TASK_TYPES:
-        TASK_TYPES.remove(task_class.__module__ + '.' + task_class.__name__)
+        TASK_TYPES.remove(task_class.name)
 
 
 @contextmanager

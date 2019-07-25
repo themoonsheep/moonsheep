@@ -1,10 +1,14 @@
 import logging
+from typing import List, Type
+
 import pbclient
 from django.db import transaction
+from django.utils.decorators import classproperty
 
+from moonsheep.models import Task, Entry
 from .mapper import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
-from .registry import register_task # NOQA # pylint: disable=unused-import # For easier import in apps
+from .registry import register_task  # NOQA # pylint: disable=unused-import # For easier import in apps
 from .settings import (
     MOONSHEEP
 )
@@ -15,23 +19,22 @@ logger = logging.getLogger(__name__)
 class AbstractTask(object):
     N_ANSWERS = 1
 
-    def __init__(self, **kwargs):
-        info = kwargs.get('info')
-        self.url = None
-        self.data = {}
-
-        self.project_id = kwargs.get('project_id')
-        self.id = kwargs.get('id')
+    def __init__(self, instance: Task):
         self.verified = False
-        if info:
-            self.url = info.get('url')
-            self.data = info.get('info', {})
 
-            # to override templates
-            if 'task_form' in info:
-                self.task_form = klass_from_name(info.get('task_form'))
-            if 'template_name' in info:
-                self.template_name = info.get('template_name')
+        self.instance = instance
+        self.id = instance.id
+        self.params = instance.params
+        
+        # per-instance overrides
+        if 'task_form' in self.params:
+            self.task_form = klass_from_name(self.params.get('task_form'))
+        if 'template_name' in self.params:
+            self.template_name = self.params.get('template_name')
+
+    @classproperty
+    def name(cls):
+        return cls.__module__ + '.' + cls.__name__
 
     def get_presenter(self):
         """
@@ -49,24 +52,22 @@ class AbstractTask(object):
         """
         # ^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$
         # http://(www\.)?vimeo\.com/(\d+)
-        url = getattr(self, 'url')
+        url = self.instance.params['url']
         return {
             'template': 'presenters/pdf.html',
             'url': url
         }
 
-    def verify_and_save(self, taskruns_list):
+    def verify_and_save(self, entries: List[Entry]) -> bool:
         """
-        This method is called by webhook with required amount of taskruns per task.
-        It crosschecks users' answers (the taskruns) and if they match -
-        their confidence is greater than MIN_CONFIDENCE, then data is verified and can be saved to database
-        otherwise... I don't know yet (will be invoked again or called "dirty data" - to be checked by moderator)
-        :type taskruns_list: list
-        :param taskruns_list: list containing taskrun dictionaries
-        :rtype: bool
+        It crosschecks users' answers (entries) and if they match data is saved to structured db.
+
+        Entries are considered cross-checked if confidence returned from the checking algorithm is greater than MIN_CONFIDENCE
+        TODO otherwise...I don't know yet (will be invoked again or called "dirty data" - to be checked by moderator)
+        :param entries: list containing entries
         :return: True if verified otherwise False
         """
-        crosschecked, confidence = self.cross_check(taskruns_list)
+        crosschecked, confidence = self.cross_check(entries)
         self.verified = confidence >= MIN_CONFIDENCE
         if self.verified:
             # save verified data
@@ -97,10 +98,7 @@ class AbstractTask(object):
         :return:
         """
         raise NotImplementedError(
-            "Task {}.{} should define save_verified_data method".format(
-                self.__class__.__module__,
-                self.__class__.__name__
-            )
+            "Task {}.{} should define save_verified_data method".format(self.__class__.name)
         )
 
     def after_save(self, verified_data):
@@ -113,43 +111,47 @@ class AbstractTask(object):
         """
         pass
 
-    def create_new_task(self, task, info):
+    @classmethod
+    def create(cls, params: dict) -> Task:
         """
-        Helper method for creating new task.
-        It has proposed structure
-        :param task:
-        :param info:
+        Helper method for creating a new task.
+
+        :param task_type: Type of task you want to create
+        :param params: Params to initialize the task
         :return: created task
         """
-        # TODO: 'type' is now reserved key in task params
-        # TODO: maybe we should reserve '_type' ?
-        info['type'] = ".".join([task.__module__, task.__name__])
 
-        if MOONSHEEP['DEV_ROTATE_TASKS']:
-            # TODO this is not true, we might create tasks
-            logger.info("Skipping task creation because TASK_SOURCE is set to random: " + repr(info))
-        else:
-            return pbclient.create_task(self.project_id, info, self.N_ANSWERS)
+        t = Task(type=cls.name, params=params)
+        t.save()
+
+        return t
 
     @staticmethod
-    def create_task_instance(task_type, **kwargs):
+    def create_task_instance(task: Task):
         """
         Create relevant task instance.
 
-        :param task_type: full reference to task class, ie. 'app.task.MyTaskClass'
-        :param kwargs: task parameters
+        :param task: task description from the DB
         :return: Task object
         """
 
-        klass = klass_from_name(task_type)
-        return klass(**kwargs)
+        klass = klass_from_name(task.type)
+        return klass(task)
 
+    # TODO call it from somewhere
     @staticmethod
-    def verify_task(project_id, task_id):
-        task_data = pbclient.get_task(project_id=project_id, task_id=task_id)
+    def verify_task(task_or_id): # TODO, simplify to one type
+        if isinstance(task_or_id, int):
+            task_or_id = Task.objects.get(task_or_id)
+        if not isinstance(task_or_id,  Task):
+            raise ValueError("task must be task_id (int) or a Task")
 
-        taskruns = pbclient.find_taskruns(project_id=project_id, task_id=task_id)
-        taskruns_list = [taskrun.data['info'] for taskrun in taskruns]
+        # TODO find better name convention
+        task_instance: Task = task_or_id
+        entries = Entry.objects.filter(task=task_instance)
 
-        task = AbstractTask.create_task_instance(task_data[0]['info']['type'], **task_data[0])
-        task.verify_and_save(taskruns_list)
+        task = AbstractTask.create_task_instance(task_instance)
+        task.verify_and_save(entries)
+
+    def __repr__(self):
+        return "<{} id={} params={}".format(self.__class__.name, self.id, self.params)

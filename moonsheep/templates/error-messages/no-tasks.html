@@ -1,26 +1,16 @@
-This error was caused because tasks broker returned no tasks. You can either configure <code>PyBossa</code>
-<strong>or</strong> prepare your own sample tasks and provide them in <code>random broker</code>.
+<p>This error was caused because tasks chooser returned no tasks.</p>
 
+<p>Steps you should take:</p>
 <ol>
-  <li>
-    Implement your tasks
-  </li>
-  <li>
-    <a href="{% url "ms-new-task" %}">Add tasks to PyBossa</a>
-  </li>
-  <strong>or</strong>
-  <li>
-    Provide random tasks
-  </li>
-  <ol>
-    <li>
-      Provide your tasks to moonsheep random tasks (? dunno)
+    <li> Implement your tasks deriving from moonsheep.tasks.AbstractTask</li>
+    <li> Provide tasks
+        <ol>
+            <li>For development of forms you might want to enable rotating through available task types by setting
+                <code>MOONSHEEP['DEV_ROTATE_TASKS'] = true</code>
+            </li>
+            <li><a href="{% url "ms-new-task" %}">In production you want to import tasks to the system</a>
+                and also come up with a better error template for your users than this
+            </li>
+        </ol>
     </li>
-    <li>
-      in settings.py:
-    </li>
-    <pre><code>
-      MOONSHEEP_TASK_SOURCE = 'random'
-    </code></pre>
-  </ol>
 </ol>

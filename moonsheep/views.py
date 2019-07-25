@@ -14,9 +14,9 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView
 
+from moonsheep.mapper import klass_from_name
 from .exceptions import (
-    PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate
-)
+    PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate)
 from .forms import NewTaskForm
 from . import registry
 from .settings import MOONSHEEP
@@ -32,11 +32,11 @@ class TaskView(FormView):
 
     def get(self, request, *args, **kwargs):
         """
-        Returns form for a this task
+        Returns form for this task
 
         Algorithm:
         1. Get actual (implementing) class name, ie. FindTableTask
-        2. Try to return if exists 'forms/find_table.html'
+        2. Derive template name for it and try to return if exists 'forms/find_table.html'
         3. Otherwise return `forms/FindTableForm`
         4. Otherwise return error suggesting to implement 2 or 3
         :return: path to the template (string) or Django's Form class
@@ -45,7 +45,7 @@ class TaskView(FormView):
             self.task_type = self._get_new_task()
             self.configure_template_and_form()
         except NoTasksLeft:
-            self.error_message = 'Broker returned no tasks'
+            self.error_message = 'Task Chooser returned no tasks'
             self.error_template = 'error-messages/no-tasks.html'
             self.task_type = None
             self.template_name = 'views/message.html'
@@ -67,13 +67,13 @@ class TaskView(FormView):
         when user hasn't defined form for a given task.
         """
         if '_task_id' not in request.POST:
-            return HttpResponseBadRequest('Missing _task_id field. Include moonsheep_token template tag!')
+            raise KeyError('Missing _task_id field. Include moonsheep_token template tag!')
 
         if '_task_type' not in request.POST:
-            return HttpResponseBadRequest('Missing _task_type field. Include moonsheep_token template tag!')
+            return KeyError('Missing _task_type field. Include moonsheep_token template tag!')
 
         # TODO keep task_id separate
-        self.task_type = self._get_task(request.POST['_task_id'], request.POST['_project_id'])
+        self.task_type = self._get_task(request.POST['_task_id'])
         self.configure_template_and_form()
 
         form = self.get_form()
@@ -147,47 +147,43 @@ class TaskView(FormView):
         return form_class(**self.get_form_kwargs())
 
     def form_valid(self, form):
-        self._save_entry(form.cleaned_data)
+        self._save_entry(self.request.POST['_task_id'], form.cleaned_data)
         return super(TaskView, self).form_valid(form)
 
     # End of FormView override
     # ========================
 
-    def _get_task(self, task_id, project_id=None):
+    def _get_task(self, task_id) -> AbstractTask:
         if MOONSHEEP['DEV_ROTATE_TASKS']:
-            task_data = self.get_random_mocked_task_data(task_id) # TODO task_type should be here, as there is no id, or are we mocking id also?
+            return self.get_random_mocked_task_data(task_id)
 
         else:
-            task_data = pbclient.get_task(
-                project_id=project_id,
-                task_id=task_id
-            )[0]
-
-        return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
+            task = Task.objects.get(task_id)
+            return AbstractTask.create_task_instance(task)
 
     def _get_new_task(self) -> AbstractTask:
         """
         Mechanism responsible for getting tasks to execute.
-        Task structure contains type, url and metadata that might be displayed in template.
 
         :rtype: AbstractTask
         :return: user's implementation of AbstractTask object
         """
         if MOONSHEEP['DEV_ROTATE_TASKS']:
-            task_data = self.get_random_mocked_task_data()
+            return self.get_random_mocked_task_data()
 
         else:
-            task_data = self.choose_a_task()
-
-        if not task_data:
-            raise NoTasksLeft
-
-        return AbstractTask.create_task_instance(task_data['info']['type'], **task_data)
+            return AbstractTask.create_task_instance(self.choose_a_task())
 
     __mocked_task_counter = 0
 
-    def get_random_mocked_task_data(self, task_type=None):
+    # TODO rename after choosing a convention
+    def get_random_mocked_task_data(self, task_type: str = None) -> AbstractTask:
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
+
+        # Allow to test one type definition, by passing it as GET parameter
+        if task_type is None:
+            task_type = self.request.GET.get('task_type', None)
+
         if task_type is None:
             defined_tasks = registry.TASK_TYPES
 
@@ -202,21 +198,15 @@ class TaskView(FormView):
                 TaskView.__mocked_task_counter = 0
             task_type = defined_tasks[TaskView.__mocked_task_counter]
 
-        default_params = {
-            'info': { # TODO provide a document from the app
-                "url": "https://nazk.gov.ua/sites/default/files/docs/2017/3/3_kv/2/Agrarna_partija/3%20%EA%E2%E0%F0%F2%E0%EB%202017%20%D6%C0%20%C0%CF%D3%20%97%20%E7%E0%F2%E5%F0%F2%E8%E9.pdf",
-                "type": task_type,
-            },
-            'id': task_type,
-            'project_id': 'https://i.imgflip.com/hkimf.jpg'
-        }
+        task_class = klass_from_name(task_type)
 
-        task = AbstractTask.create_task_instance(task_type, **default_params)
-        # Check if developers don't want to test out tasks with mocked data
-        if hasattr(task, 'create_mocked_task') and callable(task.create_mocked_task):
-            return task.create_mocked_task(default_params)
-        else:
-            return default_params
+        # Developers should provide mocked params for the task
+        if not hasattr(task_class, 'mocked_params'):
+            raise NotImplementedError("Task {} should define '@classproperty def mocked_params(cls) -> dict:'".format(task_type))
+
+        task = AbstractTask.create_task_instance(Task(type=task_type, id=task_type, params=task_class.mocked_params))
+
+        return task
 
     def choose_a_task(self) -> Task:
         """
@@ -233,15 +223,15 @@ class TaskView(FormView):
         #  especially where there are a lot of volunteers and long tasks
         return tasks[random.choice()]
 
-    def _save_entry(self, data) -> None:
+    def _save_entry(self, task_id, data) -> None:
         """
         Save entry in the database
         """
         # TODO
-        task_id = None
         user = None
 
         Entry(task_id=task_id, user=user, data=data).save()
+        # TODO record that a Entry was saved, when crosscheck should happen?
 
     def _get_user_ip(self):
         return self.request.META.get(
@@ -281,6 +271,7 @@ class ManualVerificationView(TemplateView):
 
 
 class WebhookTaskRunView(View):
+    # TODO remove it
     # TODO: instead of csrf exempt, IP white list
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):

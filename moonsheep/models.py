@@ -60,17 +60,19 @@ class Task(models.Model):
     params = JSONField(blank=True)
     """Params specifying the task, that will be passed to user"""
 
-    priority = models.DecimalField(decimal_places=2, max_digits=3, validators=[validators.MaxValueValidator(1.0),
-                                                                               validators.MinValueValidator(0.0)])
+    # TODO count priority + interface
+    priority = models.DecimalField(decimal_places=2, max_digits=3, default=1.0,
+                                   validators=[validators.MaxValueValidator(1.0), validators.MinValueValidator(0.0)], )
     """Priority of the task, set manually or computed by defined functionD from other fields. Scale: 0.0 - 1.0"""
 
-    # Statuses
+    # States
     OPEN = 'open'
     DIRTY = 'dirty'
     CROSSCHECKED = 'checked'
     CLOSED_MANUALLY = 'manual'
 
-    status = models.CharField(max_length=10, choices=[(s, s) for s in [OPEN, DIRTY, CROSSCHECKED, CLOSED_MANUALLY]])
+    state = models.CharField(max_length=10, choices=[(s, s) for s in [OPEN, DIRTY, CROSSCHECKED, CLOSED_MANUALLY]],
+                             default=OPEN)
 
     class Meta:
         constraints = [
@@ -78,7 +80,7 @@ class Task(models.Model):
             models.UniqueConstraint(fields=['type', 'params'], name='unique_type_params')
         ]
         indexes = [
-            # TODO based on queries, most likely: models.Index(fields=['status', 'priority']),
+            # TODO based on queries, most likely: models.Index(fields=['state', 'priority']),
         ]
 
     def __str__(self):
