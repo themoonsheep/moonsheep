@@ -2,10 +2,8 @@ from random import random
 
 import dpath.util
 import json
-import pbclient
 import re
 
-from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.http.request import QueryDict
 from django.urls import reverse

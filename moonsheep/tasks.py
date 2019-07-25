@@ -1,7 +1,6 @@
 import logging
 from typing import List, Type
 
-import pbclient
 from django.db import transaction
 from django.utils.decorators import classproperty
 
@@ -9,9 +8,6 @@ from moonsheep.models import Task, Entry
 from .mapper import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
 from .registry import register_task  # NOQA # pylint: disable=unused-import # For easier import in apps
-from .settings import (
-    MOONSHEEP
-)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +21,7 @@ class AbstractTask(object):
         self.instance = instance
         self.id = instance.id
         self.params = instance.params
-        
+
         # per-instance overrides
         if 'task_form' in self.params:
             self.task_form = klass_from_name(self.params.get('task_form'))
