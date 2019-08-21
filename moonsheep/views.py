@@ -290,50 +290,6 @@ class ManualVerificationView(TemplateView):
     template_name = 'views/manual-verification.html'
 
 
-class WebhookTaskRunView(View):
-    # TODO remove it
-    # TODO: instead of csrf exempt, IP white list
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
-        return super(WebhookTaskRunView, self).dispatch(request, *args, **kwargs)
-
-    def get(self, request):
-        # empty response so pybossa can set webhook to this endpoint # TODO
-        return HttpResponse(status=200)
-
-    def post(self, request):
-        """
-        Receive webhooks from other applications.
-
-        Event: PyBossa's task_completed sends following data
-        {
-          'fired_at':,
-          'project_short_name': 'project-slug',
-          'project_id': 1,
-          'task_id': 1,
-          'result_id': 1,
-          'event': 'task_completed'
-        }
-        :param request:
-        :return:
-        """
-        try:
-            webhook_data = json.loads(request.read().decode('utf-8'))
-        except json.JSONDecodeError:
-            return HttpResponseBadRequest()
-
-        if webhook_data.get('event') == 'task_completed':
-            project_id = webhook_data.get('project_id')
-            task_id = webhook_data.get('task_id')
-
-            if not project_id or not task_id:
-                return HttpResponseBadRequest()
-            AbstractTask.verify_task(project_id, task_id)
-            return HttpResponse("ok")
-
-        return HttpResponseBadRequest()
-
-
 def unpack_post(post: QueryDict) -> dict:
     """
     Unpack items in POST fields that have multiple occurences.
