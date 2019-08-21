@@ -241,13 +241,17 @@ class TaskView(FormView):
 
     def _save_entry(self, task_id, data) -> None:
         """
-        Save entry in the database
+        Save entry in the database and run the crosschecking
         """
         # TODO in #130
         user = None
 
         Entry(task_id=task_id, user=user, data=data).save()
-        # TODO record that a Entry was saved, when crosscheck should happen?
+
+        # Do the crosscheck if we have enough entries
+        entries = Entry.objects.filter(task_id=task_id)
+        if entries.count() > 3:  # TODO setting how many entries do we want for crosscheck
+            self.task_type.verify_and_save(list(entries))
 
     def _get_user_ip(self):
         return self.request.META.get(

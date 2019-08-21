@@ -77,6 +77,8 @@ class AbstractTask(object):
             # TODO: do something here
             return False
 
+        # TODO record somewhere on how many entries the crosscheck was done, update values if new crosscheck comes with higher rank
+
     def cross_check(self, entries: list) -> (dict, float):
         """
         Cross check all entries recursively
