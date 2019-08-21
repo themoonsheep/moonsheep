@@ -89,7 +89,7 @@ class Task(models.Model):
 
 class Entry(models.Model, ModelBackend):
     task = models.ForeignKey(Task, models.CASCADE)
-    user = models.ForeignKey(User, models.CASCADE)
+    user = models.ForeignKey(User, models.CASCADE, null=True)  # TODO remove null in #130
     data = JSONField()
 
     class Meta:

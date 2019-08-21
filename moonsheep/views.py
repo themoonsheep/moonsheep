@@ -145,7 +145,15 @@ class TaskView(FormView):
         return form_class(**self.get_form_kwargs())
 
     def form_valid(self, form):
-        self._save_entry(self.request.POST['_task_id'], form.cleaned_data)
+        if MOONSHEEP['DEV_ROTATE_TASKS']:
+            # Test saving data: let's assume that this entry is all we need for crosscheck
+            self.task_type.save_verified_data(form.cleaned_data)
+            # create new tasks
+            self.task_type.after_save(form.cleaned_data)
+
+        else:
+            self._save_entry(self.request.POST['_task_id'], form.cleaned_data)
+
         return super(TaskView, self).form_valid(form)
 
     # End of FormView override
@@ -179,6 +187,7 @@ class TaskView(FormView):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
 
         # Allow to test one type definition, by passing it as GET parameter
+        # TODO document it
         if task_type is None:
             task_type = self.request.GET.get('task_type', None)
 
@@ -199,8 +208,17 @@ class TaskView(FormView):
         task_class = klass_from_name(task_type)
 
         # Developers should provide mocked params for the task
-        if not hasattr(task_class, 'mocked_params'):
-            raise NotImplementedError("Task {} should define '@classproperty def mocked_params(cls) -> dict:'".format(task_type))
+        has_mocked_params = True
+        try:
+            if not hasattr(task_class, 'mocked_params'):
+                has_mocked_params = False
+        except TypeError as e:
+            has_mocked_params = False
+
+        if not has_mocked_params:
+            raise NotImplementedError(
+                "Task {} should define '@classproperty def mocked_params(cls) -> dict:'".format(task_type))
+
 
         task = AbstractTask.create_task_instance(Task(type=task_type, id=task_type, params=task_class.mocked_params))
 
@@ -225,7 +243,7 @@ class TaskView(FormView):
         """
         Save entry in the database
         """
-        # TODO
+        # TODO in #130
         user = None
 
         Entry(task_id=task_id, user=user, data=data).save()
