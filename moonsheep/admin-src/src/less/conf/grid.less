@@ -1,0 +1,35 @@
+@gutter: 10px;
+@margin: -@gutter;
+
+
+main {
+  display: block;
+  margin: 0px;
+  padding-left: 15%;
+  width: 100%; 
+}
+.row {
+  margin: 0px @margin;
+  display: block;
+  clear: both;
+  width: 100%;
+  .clearfix;
+  &.full-width {
+    margin: 0px;
+  }
+  .column {
+  //  display: inline-block;
+    padding: 0px @gutter;
+    float: left;
+    &.one    { width: 10%;  }
+    &.two    { width: 20%;  }
+    &.three  { width: 30%;  }
+    &.four   { width: 40%;  }
+    &.five   { width: 50%;  }
+    &.six    { width: 60%;  }
+    &.seven  { width: 70%;  }
+    &.eight  { width: 80%;  }
+    &.nine   { width: 90%;  }
+    &.ten    { width: 100%; }
+  }
+}

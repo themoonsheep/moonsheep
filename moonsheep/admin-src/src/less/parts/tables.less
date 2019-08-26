@@ -1,0 +1,62 @@
+table {
+  width: 100%;
+  margin-top: 30px;
+  th {
+    .anontype(20px);
+    background: @footerlavander;
+    color: @purple;
+    text-align: left;
+    padding: 1px 0px 5px 21px;
+    width: 33.3333%;
+  }
+  td {
+    padding: 7px 0px 6px 21px;
+    .opentype(18px);
+    color: @purple;
+    &:last-child{
+      .opentype(20px);
+      font-weight: 400;
+      line-height: 110%;
+    }
+  }
+}
+
+#volunteers table td:last-child { text-align: center; }
+
+.progress-bar-wrapper {
+  background-color: rgba(100,66,99,0.1);
+  height: 25px;
+  width: 100%;
+  position: relative;
+  .progress-bar {
+    -moz-transition: all 0.6s ease 0s;
+    -webkit-transition: all 0.6s ease 0s;
+    transition: all 0.6s ease 0s;
+    height: 25px;
+    width: 0%;
+    position: absolute;
+    background: @purple;
+    top: 0;
+    left: 0;
+  }
+  .progress-number {
+    position: absolute;
+    height: 25px;
+    width: 100%;
+    text-align: center;
+    .opentype(20px);
+    font-weight: 400;
+    line-height: 110%;
+  }
+}
+
+.verify {
+  background: @purple;
+  border: none;
+  color: white;
+  height: 28px;
+  .borderradius(14px);
+  text-align: center;
+  width: 100%;
+  .anontype(16px);
+}

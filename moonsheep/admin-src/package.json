@@ -1,0 +1,18 @@
+{
+  "name": "moonsheep_admin",
+  "version": "1.0.0",
+  "description": "Moonsheep admin pages",
+  "main": "index.html",
+  "scripts": {
+    "test": "test.js"
+  },
+  "author": "Level73",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "grunt": "^1.0.2",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-less": "^1.4.1",
+    "grunt-contrib-uglify": "^3.3.0",
+    "grunt-contrib-watch": "^1.0.0"
+  }
+}

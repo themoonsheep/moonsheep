@@ -1,0 +1,68 @@
+body > nav {
+  background: @purple;
+  box-shadow: 2px 0 4px 0 @purple;
+  .anontype(20px);
+  .logo {
+    text-align: center;
+    margin: 30px auto 50px;
+  }
+  ul {
+    margin: 0px;
+    float: right;
+    clear: both;
+    text-align: left;
+    padding: 0px;
+    list-style: none;
+    width: 80%;
+    li, a {
+      display: block;
+      clear: both;
+      > ul {
+        .anontype(16px);
+        width: 95%;
+        li > a {
+          padding: 4px 0px 4px 17px;
+
+        }
+      }
+    }
+
+    li > a {
+      padding: 2px 0px 2px 17px;
+
+      &.active, &.active:hover {
+        background: @white;
+        color: @purple;
+        .borderradius(16px 0px 0px 16px);
+
+      }
+      &:hover {
+        background: @hover;
+        color: @white;
+        .borderradius(16px 0px 0px 16px);
+        text-decoration: none;
+      }
+    }
+  }
+}
+
+.dropdown ul.dropdown-menu {
+  width: 100%;
+  .borderradius(0px);
+  padding: 0px;
+  margin-top: 2px; 
+  .divider {
+    margin-top: 0px;
+    margin-bottom: 0px;
+  }
+  li > a {
+    .anontype(16px);
+    line-height: 30px;
+    color: @purple;
+    &:hover {
+      background: @hover;
+      color: @white;
+      text-decoration: none;
+    }
+  }
+}

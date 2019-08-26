@@ -1,0 +1,86 @@
+* {
+  box-sizing: border-box;
+}
+html, body {
+  .opentype();
+  box-sizing: border-box;
+  height: 100%;
+}
+h1 { .anontype(42px); margin-top: 0px; }
+h2 { .anontype(32px); margin-top: 0px; line-height: 90%; }
+a {
+  color: @white;
+  text-decoration: none;
+  &:hover {
+    color: @white;
+  }
+}
+.menu-toggle { display: none; }
+#hero {
+  padding-top: 56px;
+  padding-bottom: 54px;
+  background: @palepurple;
+  color: @purple;
+  h1 ~ p {
+    line-height: 30px;
+  }
+  button ~ p {
+    .opentype(12px);
+    text-align: center;
+  }
+
+  &.campaign-header {
+    h1 { line-height: 80%; }
+    ul { list-style: none; padding: 0px; }
+  }
+}
+.small-text {
+  .opentype(12px);
+  text-align: center;
+}
+.campaign-card {
+  background: @palewhite;
+  margin-top: 30px;
+  padding: 20px !important;
+  color: @purple;
+  .clearfix;
+  h2 > button { float: right; display: block; }
+  ul {
+    list-style: none;
+    padding: 0px;
+    margin-top: 27px;
+  }
+}
+
+.relbox {
+  position: relative;
+  height: 100%;
+  min-height: 190px;
+  .bottom-box {
+    position: absolute;
+    bottom: 0;
+    span { .opentype(12px);
+
+      .badge {
+        .borderradius(4px);
+        border: 1px solid @purple;
+        padding: 3px 10px 4px;
+        display: inline-block;
+        margin-left: 10px;
+        background: @white;
+        max-width: 30px;
+      }
+
+    }
+  }
+}
+
+
+
+footer {
+  margin-top: 60px;
+  background: @footerlavander;
+  text-align: center;
+  padding-top: 50px;
+  padding-bottom: 50px;
+}

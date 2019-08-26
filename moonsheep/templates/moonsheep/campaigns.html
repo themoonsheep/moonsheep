@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Anonymous+Pro:700|Open+Sans:400,600" rel="stylesheet">
+    <link rel="stylesheet" href="css/bootstrap.min.css" >
+    <link rel="stylesheet" href="css/main.css" >
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+    <!-- Admin Panel Navigation -->
+    <nav class="navbar navbar-fixed-left">
+      <div class="logo">
+        <a href="/">
+          <img src="assets/moonsheep-admin-logo.png" alt="Moonsheep Logo">
+        </a>
+
+        <button type="button" class="menu-toggle" data-target="#main-nav" aria-expanded="false">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+      </div>
+      <div  id="main-nav" class="clearfix">
+        <ul>
+          <li>
+            <a href="" class="active">Campaigns</a>
+            <ul>
+              <li><a href="">First campaign</a></li>
+              <li><a href="">Second campaign</a></li>
+              <li><a href="">Third campaign</a></li>
+              <li><a href="">Fourth campaign</a></li>
+            </ul>
+          </li>
+          <li><a href="">Users</a></li>
+          <li><a href="">Documents</a></li>
+          <li><a href="">Volunteers <img src="assets/admin_out-link.svg"></a></li>
+        </ul>
+      </div>
+    </nav>
+    <!-- EOF Navigation -->
+
+    <main class="container-fluid">
+      <!-- Main Header Section -->
+      <header class="row full-width" id="hero">
+        <div class="col-md-9">
+          <h1>Campaigns</h1>
+          <p>
+            48% overall documents liberated<br />
+            14 / 56  documents waiting verification<br />
+            09 / 56  documents finished
+          </p>
+        </div>
+
+        <div class="col-md-3">
+          <div class="dropdown">
+            <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-main" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export All  <img src="assets/admin_dropdown.svg" alt="chevron down, opens a dropdown menu"></button>
+            <ul class="dropdown-menu" aria-labelledby="export-main">
+              <li><a href="#">Download XLSX</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="#">Download CSV</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="#">Download JSON</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="#">Export via API</a></li>
+            </ul>
+          </div>
+          <p class="center-text">Download all data from paused, stopped and finished campaigns.</p>
+        </div>
+      </header>
+      <!-- EOF Header -->
+      <section id="campaigns">
+
+        <!-- Single Campaign Wrapper -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="campaign-card">
+              <div class="row">
+                <div class="col-md-6">
+                  <h2>CampaignTitle <button class="btn btn-small btn-purple">Ready <img src="assets/admin_ready.svg" alt="Ready Icon"></button></h2>
+                  <ul>
+                    <li>48% documents liberated</li>
+                    <li>Time elapsed 27 hours</li>
+                    <li>2 / 8  documents waiting verification</li>
+                    <li>1 / 8  documents finished</li>
+                  </ul>
+                </div>
+                <div class="col-md-4 relbox">
+                  <div class="row">
+                    <div class="col-md-8">
+                      <button class="btn btn-block btn-purple" type="button">Start</button>
+                    </div>
+                  </div>
+                  <div class="bottom-box">
+                    <span>Number of same inputs verify: <input type="text"  class="badge" value="2"></span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="dropdown">
+                    <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export  <img src="assets/admin_dropdown.svg" alt="chevron down, opens a dropdown menu"></button>
+                    <ul class="dropdown-menu" aria-labelledby="export-1">
+                      <li><a href="#">Download XLSX</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download CSV</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download JSON</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Export via API</a></li>
+                    </ul>
+                  </div>
+                  <p class="small-text">Download all data from finished documents.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EOF Single Campaign -->
+
+        <!-- Single Campaign Wrapper -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="campaign-card">
+              <div class="row">
+                <div class="col-md-6">
+                  <h2>Second Campaign <button class="btn btn-small btn-purple">Active <img src="assets/admin_active.svg" alt="Active Campaign Icon"></button></h2>
+                  <ul>
+                    <li>48% documents liberated</li>
+                    <li>Time elapsed 27 hours</li>
+                    <li>2 / 8  documents waiting verification</li>
+                    <li>1 / 8  documents finished</li>
+                  </ul>
+                </div>
+                <div class="col-md-4 relbox">
+                  <div class="row">
+                    <div class="col-md-8">
+                      <button class="btn btn-block btn-transparent" type="button">Pause</button>
+                    </div>
+                  </div>
+                  <div class="bottom-box">
+                    <span>Number of same inputs verify: <input type="text"  class="badge" value="2"></span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="dropdown">
+                    <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export  <img src="assets/admin_dropdown.svg" alt="chevron down, opens a dropdown menu"></button>
+                    <ul class="dropdown-menu" aria-labelledby="export-2">
+                      <li><a href="#">Download XLSX</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download CSV</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download JSON</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Export via API</a></li>
+                    </ul>
+                  </div>
+                  <p class="small-text">Download all data from finished documents.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EOF Single Campaign -->
+
+        <!-- Single Campaign Wrapper -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="campaign-card">
+              <div class="row">
+                <div class="col-md-6">
+                  <h2>Second Campaign <button class="btn btn-small btn-purple">Paused <img src="assets/admin_paused.svg" alt="Paused Campaign Icon"></button></h2>
+                  <ul>
+                    <li>48% documents liberated</li>
+                    <li>Time elapsed 27 hours</li>
+                    <li>2 / 8  documents waiting verification</li>
+                    <li>1 / 8  documents finished</li>
+                  </ul>
+                </div>
+                <div class="col-md-4 relbox">
+                  <div class="row">
+                    <div class="col-md-8">
+                      <button class="btn btn-block btn-purple" type="button">Resume</button>
+                      <button class="btn btn-block btn-transparent" type="button">Stop</button>
+                    </div>
+                  </div>
+                  <div class="bottom-box">
+                    <span>Number of same inputs verify: <input type="text"  class="badge" value="2"></span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="dropdown">
+                    <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-3" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export  <img src="assets/admin_dropdown.svg" alt="chevron down, opens a dropdown menu"></button>
+                    <ul class="dropdown-menu" aria-labelledby="export-3">
+                      <li><a href="#">Download XLSX</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download CSV</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download JSON</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Export via API</a></li>
+                    </ul>
+                  </div>
+                  <p class="small-text">Download all data from finished documents.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EOF Single Campaign -->
+
+        <!-- Single Campaign Wrapper -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="campaign-card">
+              <div class="row">
+                <div class="col-md-6">
+                  <h2>Second Campaign <button class="btn btn-small btn-purple">Stopped <img src="assets/admin_stopped.svg" alt="Stopped Campaign Icon"></button></h2>
+                  <ul>
+                    <li>48% documents liberated</li>
+                    <li>Time elapsed 27 hours</li>
+                    <li>2 / 8  documents waiting verification</li>
+                    <li>1 / 8  documents finished</li>
+                  </ul>
+                </div>
+                <div class="col-md-4 relbox">
+                  <div class="row">
+                    <div class="col-md-8">
+                      <!-- <button class="btn btn-block btn-purple" type="button">Resume</button>
+                      <button class="btn btn-block btn-transparent" type="button">Stop</button> -->
+                    </div>
+                  </div>
+                  <div class="bottom-box">
+                    <span>Number of same inputs verify: <input type="text"  class="badge" value="2"></span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="dropdown">
+                    <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-4" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export  <img src="assets/admin_dropdown.svg" alt="chevron down, opens a dropdown menu"></button>
+                    <ul class="dropdown-menu" aria-labelledby="export-4">
+                      <li><a href="#">Download XLSX</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download CSV</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download JSON</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Export via API</a></li>
+                    </ul>
+                  </div>
+                  <p class="small-text">Download all data from finished documents.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EOF Single Campaign -->
+
+        <!-- Single Campaign Wrapper -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="campaign-card">
+              <div class="row">
+                <div class="col-md-6">
+                  <h2>Second Campaign <button class="btn btn-small btn-purple">Finished <img src="assets/admin_finished.svg" alt="Finished Campaign Icon"></button></h2>
+                  <ul>
+                    <li>48% documents liberated</li>
+                    <li>Time elapsed 27 hours</li>
+                    <li>2 / 8  documents waiting verification</li>
+                    <li>1 / 8  documents finished</li>
+                  </ul>
+                </div>
+                <div class="col-md-4 relbox">
+                  <div class="row">
+                    <div class="col-md-8">
+                      <!-- <button class="btn btn-block btn-purple" type="button">Resume</button>
+                      <button class="btn btn-block btn-transparent" type="button">Stop</button> -->
+                    </div>
+                  </div>
+                  <div class="bottom-box">
+                    <span>Number of same inputs verify: <input type="text"  class="badge" value="2"></span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="dropdown">
+                    <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-5" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export  <img src="assets/admin_dropdown.svg" alt="chevron down, opens a dropdown menu"></button>
+                    <ul class="dropdown-menu" aria-labelledby="export-5">
+                      <li><a href="#">Download XLSX</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download CSV</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Download JSON</a></li>
+                      <li role="separator" class="divider"></li>
+                      <li><a href="#">Export via API</a></li>
+                    </ul>
+                  </div>
+                  <p class="small-text">Download all data from finished documents.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EOF Single Campaign -->
+      </section>
+
+      <footer class="row">
+        <div class="col-md-12">
+          <img src="assets/licences.svg" alt="License Icons">
+        </div>
+      </footer>
+    </main>
+
+    <!-- Javascript -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/moonsheep_admin.min.js"></script>
+  </body>
+
+
+</html>

@@ -1,0 +1,38 @@
+.btn {
+  .borderradius(4px);
+  .anontype();
+  display: block;
+  border: none;
+
+  &.btn-small {
+    .borderradius(14px);
+    .anontype(12px);
+    height: 28px;
+    line-height: 26px;
+    padding-left: 12px;
+
+    > img {
+      padding: 6px 7px 6px 12px;
+      display: inline-block;
+      float: right;
+    }
+  }
+  &.btn-purple {
+    background: @purple;
+    color: @white;
+  }
+  &.btn-transparent {
+    background: transparent;
+    color: @purple;
+    border: 1px solid @purple;
+  }
+  &.btn-block {
+    width: 100%;
+    .anontype(16px);
+    line-height: 19px;
+    padding: 4px 8px 4px;
+    & ~ button {
+      margin-top: 10px;
+    }
+  }
+}

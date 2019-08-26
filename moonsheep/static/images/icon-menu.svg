@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="20" viewBox="0 0 30 20">
+  <g fill="none" fill-rule="evenodd" transform="translate(-21 -26)">
+    <rect width="70" height="70" fill="none"/>
+    <path fill="#FCFADA" d="M21,26 L51,26 L51,29.36 L21,29.36 L21,26 Z M21,37.64 L21,34.36 L51,34.36 L51,37.64 L21,37.64 Z M21,46 L21,42.64 L51,42.64 L51,46 L21,46 Z"/>
+  </g>
+</svg>
