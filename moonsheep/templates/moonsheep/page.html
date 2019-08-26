@@ -1,0 +1,23 @@
+{% extends "moonsheep/base.html" %}
+{% load static %}
+
+{% block right %}
+
+<!-- Main Header Section -->
+<header class="row full-width campaign-header" id="hero">
+    {% block header %}
+    {% endblock header %}
+</header>
+
+{% block content %}
+{% endblock content %}
+
+<footer class="row">
+    {% block footer %}
+    <div class="col-md-12">
+        <img src="{% static 'images/licences.svg' %}" alt="License Icons">
+    </div>
+    {% endblock footer %}
+</footer>
+
+{% endblock right %}

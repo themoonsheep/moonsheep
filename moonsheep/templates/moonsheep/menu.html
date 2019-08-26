@@ -1,0 +1,22 @@
+{% load static %}
+<ul>
+    <!-- Multiple campaigns support #67
+    <li>
+        <a href="" class="active">Campaigns</a>
+        <ul>
+            <li><a href="">First campaign</a></li>
+            <li><a href="">Second campaign</a></li>
+            <li><a href="">Third campaign</a></li>
+            <li><a href="">Fourth campaign</a></li>
+        </ul>
+    </li>
+    -->
+    <li><a href="{% url 'ms-admin' %}" class="{% if request.resolver_match.view_name == 'ms-admin' %}active{% endif %}">
+        Campaign</a></li>
+    <li><a href="/admin/auth/user/">
+        Users</a></li>
+    <li><a href="" class="{% if request.resolver_match.url_name == 'my_view_name' %}active{% endif %}">
+        Documents</a></li>
+    <li><a href="" class="{% if request.resolver_match.url_name == 'my_view_name' %}active{% endif %}">
+        Volunteers <img src="{% static 'images/admin_out-link.svg' %}"></a></li>
+</ul>
