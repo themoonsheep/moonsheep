@@ -3,7 +3,6 @@ from django.contrib.auth.models import User, AbstractUser
 from django.db import models
 from django.utils.translation import ugettext as _
 from django.core import validators
-from .registry import TASK_TYPES
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 
@@ -54,7 +53,8 @@ class Task(models.Model):
     It is uniquely defined by task class/type and params
     """
 
-    type = models.CharField(verbose_name=_("Type"), max_length=255, choices=[(t, t) for t in TASK_TYPES])
+    # TODO issue with circular imports; resolve it otherwise, add choices dynamically or drop it # from .registry import TASK_TYPES
+    type = models.CharField(verbose_name=_("Type"), max_length=255) #, choices=[(t, t) for t in TASK_TYPES])
     """Full reference (with module) to task class name"""
 
     params = JSONField(blank=True)
