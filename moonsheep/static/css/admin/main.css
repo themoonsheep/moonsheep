@@ -12,6 +12,8 @@
   font-size: 18px;
   display: block;
   border: none;
+  text-align: center; /* TODO propagate to LESS */
+  margin-bottom: 6px; /* TODO propagate to LESS */
 }
 .btn.btn-small {
   border-radius: 14px;
@@ -79,6 +81,9 @@ a {
 }
 a:hover {
   color: #FFFEE7;
+}
+table a, table a:hover { /* TODO propagate to LESS */
+  color: rgb(100, 66, 99);
 }
 .menu-toggle {
   display: none;
@@ -237,6 +242,10 @@ body > nav ul li > a:hover {
   line-height: 30px;
   color: #644263;
 }
+.dropdown ul.dropdown-menu li > a.disabled { /* TODO propagate to LESS */
+  color: grey;
+  cursor: default;
+}
 .dropdown ul.dropdown-menu li > a:hover {
   background: #8D738C;
   color: #FFFEE7;
@@ -254,7 +263,7 @@ table th {
   color: #644263;
   text-align: left;
   padding: 1px 0px 5px 21px;
-  width: 33.3333%;
+  /* width: 33.3333%; */ /* TODO propagate to LESS */
 }
 table td {
   padding: 7px 0px 6px 21px;
