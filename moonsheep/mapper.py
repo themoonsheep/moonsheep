@@ -6,7 +6,7 @@ from typing import Callable
 from django.core import serializers
 from django.db import models as dmodels
 
-
+# TODO this isn't used anymore, do we want to keep it?
 class ModelMapper:
     def __init__(self, klass, data, **kwargs):
         def default_getter(param_name:str):
