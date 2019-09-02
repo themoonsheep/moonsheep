@@ -2,8 +2,10 @@
 
 from contextlib import contextmanager
 
-# TODO won't dict with actual classes be helpful here?
-TASK_TYPES = []
+from moonsheep.mapper import klass_from_name
+from moonsheep.tasks import AbstractTask
+from .settings import MOONSHEEP
+import django.db.models
 
 
 def register(task_class):
@@ -43,20 +45,40 @@ def loaded_tasks(*task_classes):
             unregister(t)
 
 
-def register_task():
+def document(on_import_create=[]):
     """
-    Decorator to register a given task class
+    Decorator to register model which saves documents
 
-    @register_task()
-    class TransactionTask(AbstractTask):
-
+    ```
+    @document(on_import_create=['app.tasks.FindTableTask'])
+    class Report(models.Model):
+    ```
     """
-    def _task_wrapper(task_class):
-        if not task_class:
-            raise ValueError('Task Class must be passed to register.')
 
-        register(task_class)
+    def _task_wrapper(model_class):
+        # TODO check: model_class should have url parameter
 
-        return task_class
+        if not len(on_import_create):
+            raise ValueError(
+                "You should specify tasks to create on document upload using on_import_create decorator parameter")
+
+        MOONSHEEP['DOCUMENT_MODEL'] = model_class
+        MOONSHEEP['DOCUMENT_INITIAL_TASKS'] = on_import_create
+
+        return model_class
 
     return _task_wrapper
+
+
+def get_document_model():
+    if 'DOCUMENT_MODEL' not in MOONSHEEP:
+        raise ValueError("Project must define a default document model using @document annotation on a class")
+    if not issubclass(MOONSHEEP['DOCUMENT_MODEL'], django.db.models.Model):
+        raise ValueError("Document model should implement Django's Model")
+
+    return MOONSHEEP['DOCUMENT_MODEL']
+
+
+# TODO won't dict with actual classes be helpful here?
+# TODO move it into settings to avoid circular dependencies?
+TASK_TYPES = []

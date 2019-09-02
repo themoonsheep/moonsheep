@@ -14,13 +14,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from django.conf.urls import url
+from django.urls import path
+from django.views.generic import TemplateView
 
-from .views import AdminView, NewTaskFormView, TaskListView, ManualVerificationView
-
+from .views import NewTaskFormView, TaskListView, ManualVerificationView, DocumentListView
 
 urlpatterns = [
-    # TODO update to path()
-    url(r'^$', AdminView.as_view(), name='ms-admin'),
+    path('', TemplateView.as_view(template_name='moonsheep/campaign.html'), name='ms-admin'),  # TODO cleaner namespace here instead of ms-admin url name
+    path('documents', DocumentListView.as_view(), name='documents'),
+    path('documents/import-http', TemplateView.as_view(template_name='moonsheep/documents.html'), name='documents-import-http'),
+    path('old', TemplateView.as_view(template_name = 'views/admin.html')),
     url(r'^new-task/$', NewTaskFormView.as_view(), name='ms-new-task'),
     url(r'^tasks/$', TaskListView.as_view(), name='ms-tasks'),
     url(r'^manual-verification/$', ManualVerificationView.as_view(), name='ms-manual-verification'),

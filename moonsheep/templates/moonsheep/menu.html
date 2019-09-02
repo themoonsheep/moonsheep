@@ -15,8 +15,8 @@
         Campaign</a></li>
     <li><a href="/admin/auth/user/">
         Users</a></li>
-    <li><a href="" class="{% if request.resolver_match.url_name == 'my_view_name' %}active{% endif %}">
+    <li><a href="{% url 'documents' %}" class="{% if request.resolver_match.view_name == 'documents' %}active{% endif %}">
         Documents</a></li>
-    <li><a href="" class="{% if request.resolver_match.url_name == 'my_view_name' %}active{% endif %}">
+    <li><a href="" class="{% if request.resolver_match.view_name == 'my_view_name' %}active{% endif %}">
         Volunteers <img src="{% static 'images/admin_out-link.svg' %}"></a></li>
 </ul>

@@ -1,0 +1,72 @@
+{% extends "moonsheep/page.html" %}
+{% load static %}
+{% load moonsheep %}
+
+{% block header %}
+<div class="col-md-6">
+    <h1>Documents</h1>
+</div>
+
+<div class="col-md-4">
+</div>
+
+<div class="col-md-2">
+    <a href="/bla" class="btn btn-purple btn-block" type="button" id="document-add">
+        Add
+    </a>
+
+    <div class="dropdown">
+        <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="import-many"
+                data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            Import
+            <img src="{% static 'images/admin_dropdown.svg' %}" alt="chevron down, opens a dropdown menu">
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="export-main">
+            <li><a href="{% url 'documents-import-http' %}">from HTTP listing</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a href="#" class="disabled" aria-disabled="true">from FTP</a></li>
+        </ul>
+    </div>
+</div>
+{% endblock header %}
+
+
+{% block content %}
+<section class="row">
+    <div class="col-md-12" id="documents-list">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Name</th> <!-- to have a nice label, artificially added or a filename, + link to structured dataa -->
+                <th>Url</th> <!-- to original document -->
+                <th>Progress</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td><a href="{% url 'admin:opora_report_change' 3 %}">file1.pdf</a></td>
+                <td>http://static/file1.pdf</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="82"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+            </tr>
+            {% for d in documents %}
+            <tr>
+                <td><a href="{% document_change_url d %}">{{ d }}</a></td>
+                <td>{{ d.url }}</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="{% progress_of d %}"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock content %}

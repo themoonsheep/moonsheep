@@ -7,7 +7,7 @@ from django.utils.decorators import classproperty
 from moonsheep.models import Task, Entry
 from .mapper import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
-from .registry import register_task  # NOQA # pylint: disable=unused-import # For easier import in apps
+from . import registry
 
 logger = logging.getLogger(__name__)
 
@@ -153,3 +153,23 @@ class AbstractTask(object):
 
     def __repr__(self):
         return "<{} id={} params={}".format(self.__class__.name, self.id, self.params)
+
+
+def register_task():
+    """
+    Decorator to register a given task class
+
+    @register_task()
+    class TransactionTask(AbstractTask):
+
+    """
+
+    def _task_wrapper(task_class):
+        if not task_class:
+            raise ValueError('Task Class must be passed to register.')
+
+        registry.register(task_class)
+
+        return task_class
+
+    return _task_wrapper

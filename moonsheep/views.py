@@ -258,10 +258,6 @@ class TaskView(FormView):
         ).split(',')[-1].strip()
 
 
-class AdminView(TemplateView):
-    template_name = 'views/admin.html'
-
-
 class NewTaskFormView(FormView):
     template_name = 'views/new-task.html'
     form_class = NewTaskForm
@@ -287,6 +283,19 @@ class TaskListView(TemplateView):
 
 class ManualVerificationView(TemplateView):
     template_name = 'views/manual-verification.html'
+
+
+class DocumentListView(TemplateView):
+    template_name = 'moonsheep/documents.html'
+
+    def get_context_data(self, **kwargs):
+        kwargs = super().get_context_data(**kwargs)
+        kwargs.update({
+            # TODO paging, etc.
+            'documents': registry.get_document_model().objects.all()
+        })
+        return kwargs
+
 
 
 def unpack_post(post: QueryDict) -> dict:
