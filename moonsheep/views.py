@@ -219,7 +219,6 @@ class TaskView(FormView):
             raise NotImplementedError(
                 "Task {} should define '@classproperty def mocked_params(cls) -> dict:'".format(task_type))
 
-
         task = AbstractTask.create_task_instance(Task(type=task_type, id=task_type, params=task_class.mocked_params))
 
         return task
@@ -268,7 +267,7 @@ class NewTaskFormView(FormView):
     form_class = NewTaskForm
 
     def get_success_url(self):
-        return reverse('ms-new-task') # TODO namespace not needed in app, right? remove ms-
+        return reverse('ms-new-task')  # TODO namespace not needed in app, right? remove ms-
 
     def form_valid(self, form):
         form.cleaned_data.get('url'),
