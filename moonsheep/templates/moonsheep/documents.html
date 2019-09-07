@@ -24,6 +24,9 @@
         <ul class="dropdown-menu" aria-labelledby="export-main">
             <li><a href="{% url 'documents-import-http' %}">from HTTP listing</a></li>
             <li role="separator" class="divider"></li>
+            {% for i in importers %}
+            <li>{{ i }}</li>
+            {% endfor %}
             <li><a href="#" class="disabled" aria-disabled="true">from FTP</a></li>
         </ul>
     </div>

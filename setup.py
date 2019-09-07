@@ -27,6 +27,7 @@ setup(
         'djangorestframework~=3.10',
         'djangorestframework-jsonapi~=2.8',
         'django-filter~=2.2',
+        'PyUtilib~=5.7'
     ],
     classifiers=[
         'Environment :: Web Environment',
