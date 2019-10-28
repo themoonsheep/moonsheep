@@ -1,0 +1,31 @@
+{% extends "moonsheep/page.html" %}
+{% load static %}
+{% load moonsheep %}
+
+{% block header %}
+<div class="col-md-6">
+    <h1>Import {{ label }}</h1>
+</div>
+{% endblock header %}
+
+
+{% block content %}
+<section class="row">
+    <form method="post">
+        {% csrf_token %}
+        
+        {% include template_name %}
+
+        <div>
+            Will create tasks:
+            {# TODO should we switch to Jinja2? #}
+            <select name="tasks_to_create" multiple {% if tasks_to_create %}disabled="disabled"{% endif %}>
+                {% for t in all_tasks %}
+                <option value="{{t}}" {% if t in tasks_to_create %}selected{% endif %}>{{ t|task_name }}</option>
+                {% endfor %}
+            </select>
+        </div
+        <div><input type="submit" value="Import documents"/></div>
+    </form>
+</section>
+{% endblock content %}

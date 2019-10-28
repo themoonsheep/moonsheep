@@ -22,12 +22,9 @@
             <img src="{% static 'images/admin_dropdown.svg' %}" alt="chevron down, opens a dropdown menu">
         </button>
         <ul class="dropdown-menu" aria-labelledby="export-main">
-            <li><a href="{% url 'documents-import-http' %}">from HTTP listing</a></li>
-            <li role="separator" class="divider"></li>
             {% for i in importers %}
-            <li>{{ i }}</li>
+            <li><a href="{% url 'importer' i.name %}">{{ i }}</a></li>
             {% endfor %}
-            <li><a href="#" class="disabled" aria-disabled="true">from FTP</a></li>
         </ul>
     </div>
 </div>
@@ -40,7 +37,8 @@
         <table class="table">
             <thead>
             <tr>
-                <th>Name</th> <!-- to have a nice label, artificially added or a filename, + link to structured dataa -->
+                <th>Name</th>
+                <!-- to have a nice label, artificially added or a filename, + link to structured dataa -->
                 <th>Url</th> <!-- to original document -->
                 <th>Progress</th>
             </tr>

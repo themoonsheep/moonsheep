@@ -1,4 +1,5 @@
 from django.template import Library
+from django.template.defaultfilters import stringfilter
 from django.urls import reverse
 import django.db.models
 
@@ -35,3 +36,9 @@ def progress_of(document_or_task):
 
     # TODO #13
     return 81
+
+
+@register.filter
+@stringfilter
+def task_name(value):
+    return value.split('.').pop()

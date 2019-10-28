@@ -11,10 +11,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView
-from .plugins import ExtensionPoint
 
 from moonsheep.mapper import klass_from_name
-from moonsheep.plugins import IDocumentImporter
+from moonsheep.importers.core import IDocumentImporter
 from .exceptions import (
     PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate)
 from .forms import NewTaskForm
@@ -292,11 +291,8 @@ class DocumentListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         documents = registry.get_document_model().objects.all()
-        importers = ExtensionPoint(IDocumentImporter)
-        
-        # TODO HttpDocumentImporter is not seen :/
-        print(len(importers))
-        
+        importers = IDocumentImporter.implementations()
+
         kwargs = super().get_context_data(**kwargs)
         kwargs.update({
             # TODO paging, etc.
