@@ -2,6 +2,8 @@ SECRET_KEY = 'fake-key'
 
 INSTALLED_APPS = [
     "moonsheep",
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
 ]
 
 DATABASES = {

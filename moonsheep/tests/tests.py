@@ -1,5 +1,5 @@
 import json
-from requests.exceptions import ConnectionError
+# from requests.exceptions import ConnectionError
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
@@ -13,10 +13,9 @@ from unittest.mock import MagicMock, patch, sentinel, call
 from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft
 from moonsheep.forms import NewTaskForm, MultipleRangeField
 from moonsheep.mapper import ModelMapper
-from moonsheep.register import base_task, initial_task
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
-from moonsheep.views import unpack_post, TaskView, NewTaskFormView, WebhookTaskRunView
+from moonsheep.views import unpack_post, TaskView, NewTaskFormView
 
 
 # TODO: FIXME

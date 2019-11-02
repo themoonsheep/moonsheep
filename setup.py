@@ -4,6 +4,14 @@ from setuptools import find_packages, setup
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
     README = readme.read()
 
+TEST_REQUIREMENTS = [
+    'pytest',
+    'pytest-django',
+    'pylint',
+    'pylint_django',
+    'git-pylint-commit-hook',
+]
+
 setup(
     name='django-moonsheep',
     version='0.3.0',
@@ -27,8 +35,10 @@ setup(
         'djangorestframework~=3.10',
         'djangorestframework-jsonapi~=2.8',
         'django-filter~=2.2',
-        'PyUtilib~=5.7'
+        'PyUtilib~=5.7',
+        'requests~=2.22',
     ],
+    tests_require=TEST_REQUIREMENTS,
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
