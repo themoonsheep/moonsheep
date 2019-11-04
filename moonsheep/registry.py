@@ -62,6 +62,8 @@ def document(on_import_create=[]):
             raise ValueError(
                 "You should specify tasks to create on document upload using on_import_create decorator parameter")
 
+        # TODO add validation on_import_create - those tasks should exist
+
         MOONSHEEP['DOCUMENT_MODEL'] = model_class
         MOONSHEEP['DOCUMENT_INITIAL_TASKS'] = on_import_create
 

@@ -1,7 +1,10 @@
+import os
+
 from django.template import Library
 from django.template.defaultfilters import stringfilter
 from django.urls import reverse
 import django.db.models
+import urllib.parse
 
 from moonsheep.tasks import AbstractTask
 from moonsheep.settings import MOONSHEEP
@@ -42,3 +45,8 @@ def progress_of(document_or_task):
 @stringfilter
 def task_name(value):
     return value.split('.').pop()
+
+@register.filter
+@stringfilter
+def pretty_url(value):
+    return urllib.parse.unquote(os.path.basename(value))

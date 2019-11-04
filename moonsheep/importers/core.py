@@ -1,50 +1,73 @@
 from abc import abstractmethod
 from typing import Sequence
 
+from django.db import models, IntegrityError
 from django.http import HttpResponseBadRequest, HttpResponseRedirect, QueryDict
 from django.urls import reverse
 from django.views.generic.base import TemplateView
 
+import opora
 from moonsheep.models import Task
 from moonsheep.plugins import PluginError, Interface
 from moonsheep.registry import TASK_TYPES
 from moonsheep.settings import MOONSHEEP
 
 
-class DocumentSaver:
-    def __init__(self, tasks_to_create):
-        self.tasks_to_create = tasks_to_create
-
-    def add_documents(self, urls) -> None:
-        """
-        Allow to add documents in batches
-
-        :param urls: Urls to be added
-        """
-
-        for url in urls:
-            # Create domain object based on document
-            model = MOONSHEEP['DOCUMENT_MODEL']
-
-            # TODO can we create/insert many at once?
-            # We expect that the DOCUMENT_MODEL should have url field
-            d = model.objects.create({'url': url})
-
-            # Create needed tasks
-            for t in self.tasks_to_create:
-                Task.objects.create({
-                    'type': t,
-                    'params': {
-                        'url': url
-                    },
-                    'priority': 1.0,  # TODO compute when setting https://github.com/themoonsheep/moonsheep/issues/50
-                })
-
-
 class IDocumentImporter(Interface):
     @abstractmethod
-    def import_documents(self, params: QueryDict, doc_saver: DocumentSaver) -> Sequence[str]:
+    def find_urls(self, **options) -> Sequence[str]:
+        """
+        Returns a list of urls to be imported as documents
+        :param options: Configuration options dependent on importer
+        :return:
+        """
         pass
+
+
+# TODO move it to BaseDocumentImporter once it is created
+def import_documents(importer, tasks_to_create=[], **options):
+    if not tasks_to_create:
+        tasks_to_create = MOONSHEEP['DOCUMENT_INITIAL_TASKS']
+
+    # Create domain object based on document
+    model = MOONSHEEP['DOCUMENT_MODEL']
+    model_pk = str(model._meta.pk)
+    model_label = model._meta.label
+
+    dry_run = options.pop('dry_run', False)
+
+    # TODO options should be passed here or during importer construction?
+    # when do we have an instance of importer, when a class available?
+    for url in importer.find_urls(**options):
+        print(f"Creating {model_label}[url={url}] with tasks {', '.join(tasks_to_create)}")
+        if dry_run:
+            continue
+
+        # TODO can we create/insert many at once?
+        # We expect that the DOCUMENT_MODEL should have url field
+        # TODO one might not want to create object instantly, but only after task is cross-checked
+        # in the domain db we rather want to have only filled in data
+        # maybe this should be steered by on_document_create hook that might be implemented (and also customized)
+        # TODO doc Document should have url field, and no other field should be required on the model
+        try:
+            d = model.objects.create(**{'url': url})
+        except IntegrityError as e:
+            if str(e).startswith("UNIQUE constraint failed"):
+                print("\tSkipping url as duplicate")
+                continue
+
+            raise e
+
+        # Create needed tasks
+        for t in tasks_to_create:
+            Task.objects.create(**{
+                'type': t,
+                'params': {
+                    model_pk: d.id,  # poointer to document object, might be helpful for debugging
+                    'url': url
+                },
+                'priority': 1.0,  # TODO compute when setting https://github.com/themoonsheep/moonsheep/issues/50
+            })
 
 
 class ImporterView(TemplateView):
@@ -95,9 +118,8 @@ class ImporterView(TemplateView):
             # TODO re-render the form with err message
             raise HttpResponseBadRequest("tasks_to_create should be provided")
 
-        # TODO doc_saver
-        importer.import_documents(request.POST, DocumentSaver(tasks_to_create))
-        # TODO error handling
+        import_documents(importer, tasks_to_create, request.POST)
+        # TODO error handling, retry?
         # TODO progress screen
 
         # TODO flash message was successful

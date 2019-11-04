@@ -44,20 +44,10 @@
             </tr>
             </thead>
             <tbody>
-            <tr>
-                <td><a href="{% url 'admin:opora_report_change' 3 %}">file1.pdf</a></td>
-                <td>http://static/file1.pdf</td>
-                <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="82"></div>
-                        <div class="progress-number"></div>
-                    </div>
-                </td>
-            </tr>
             {% for d in documents %}
             <tr>
                 <td><a href="{% document_change_url d %}">{{ d }}</a></td>
-                <td>{{ d.url }}</td>
+                <td><a href="{{ d.url }}" target="_blank">{{ d.url|pretty_url }}</a></td>
                 <td>
                     <div class="progress-bar-wrapper">
                         <div class="progress-bar" data-width="{% progress_of d %}"></div>

@@ -1,12 +1,13 @@
 import re
 import urllib
+import urllib.parse
 from typing import Sequence, List, Pattern
 
 import requests
 from django.core.management import BaseCommand
 from django.http import QueryDict
 
-from moonsheep.importers.core import IDocumentImporter, DocumentSaver
+from moonsheep.importers.core import IDocumentImporter
 from moonsheep.plugins import Plugin, implements
 
 
@@ -14,9 +15,6 @@ from moonsheep.plugins import Plugin, implements
 class HttpDocumentImporter(Plugin):
     # TODO, this should not be singleton, this should be configurable plugin
     implements(IDocumentImporter)
-
-    def import_documents(self, params: QueryDict, doc_saver: DocumentSaver) -> Sequence[str]:
-        return []
 
     # View - template
     template_name = "importers/http.html"
@@ -41,10 +39,9 @@ class HttpDocumentImporter(Plugin):
         regexp = r'<a\s+href="([^"]+)"\s*>([^<]+)<'
         return [g[0] for g in re.findall(regexp, html_contents) if not g[1].startswith('..')]
 
-    @staticmethod
-    def find_urls(host: str, pattern: str, paths: List[str], log=None) -> List[str]:
-        # TODO have some assumptions on input arguments
-        path_queue = [host + '/' + path for path in paths]
+    def find_urls(self, host: str, pattern: str, paths: List[str], log=None) -> List[str]:
+        path_queue = [urllib.parse.urljoin(host, path) for path in paths]
+
         if pattern:
             pattern_re: Pattern = re.compile(pattern.replace('.', '\\.').replace('*', '.*'))
 
