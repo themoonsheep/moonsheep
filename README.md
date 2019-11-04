@@ -38,9 +38,9 @@ class Report(models.Model):
 Then import documents. Right now only the import from HTTP index listings via command line is supported:
 
 ```bash
-python manage.py moonsheep:import_http --host http://user@host/root  dir1 dir2/file1
-python manage.py moonsheep:import_http http://user@host/root/dir1
-python manage.py moonsheep:import_http http://user@host/root/dir1 -f *.pdf --dry-run
+python manage.py moonsheep_import_http --host http://user@host/root  dir1 dir2/file1
+python manage.py moonsheep_import_http http://user@host/root/dir1
+python manage.py moonsheep_import_http http://user@host/root/dir1 -f *.pdf --dry-run
 ```
 
 Options:
