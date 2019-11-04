@@ -35,6 +35,11 @@ class Report(models.Model):
     # later tasks will fill in other details 
 ```
 
+If several tasks should be created for one document just list them:
+```python
+@document(on_import_create=['kmonitor_ad.tasks.Section1PersonalData', 'kmonitor_ad.tasks.Section2Properties', 'kmonitor_ad.tasks.Section3Movables'])
+```
+
 Then import documents. Right now only the import from HTTP index listings via command line is supported:
 
 ```bash
