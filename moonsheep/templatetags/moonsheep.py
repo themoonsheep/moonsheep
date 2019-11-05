@@ -6,6 +6,7 @@ from django.urls import reverse
 import django.db.models
 import urllib.parse
 
+from moonsheep.models import Task
 from moonsheep.tasks import AbstractTask
 from moonsheep.settings import MOONSHEEP
 
@@ -30,14 +31,16 @@ def document_change_url(instance):
 @register.simple_tag
 def progress_of(document_or_task):
     if isinstance(document_or_task, django.db.models.Model):
+        # document
         doc = document_or_task
         tasks = MOONSHEEP['DOCUMENT_INITIAL_TASKS']
         # TODO #13
     else:
-        task = document_or_task
+        task: Task = document_or_task
+        return task.own_progress
         # TODO
 
-    # TODO #13
+    # TODO #13 #138
     return 81
 
 

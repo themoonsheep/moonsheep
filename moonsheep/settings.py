@@ -1,7 +1,13 @@
 # TODO A tested solution for importing & overriding settings:
 #  https://github.com/encode/django-rest-framework/blob/master/rest_framework/settings.py
+# We go with more basic solution
+# 1) isting here default settings
+# 2) importing them in a project: from moonsheep.settings import *  # NOQA
+# 3) updating them if needed: MOONSHEEP.update({})
+
 MOONSHEEP = {
-    'DEV_ROTATE_TASKS': False
+    'DEV_ROTATE_TASKS': False,
+    'MIN_ENTRIES_TO_CROSSCHECK': 3,
 }
 
 REST_FRAMEWORK = {

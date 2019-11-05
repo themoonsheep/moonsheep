@@ -54,17 +54,29 @@ class Task(models.Model):
     """
 
     # TODO issue with circular imports; resolve it otherwise, add choices dynamically or drop it # from .registry import TASK_TYPES
-    type = models.CharField(verbose_name=_("Type"), max_length=255) #, choices=[(t, t) for t in TASK_TYPES])
+    type = models.CharField(verbose_name=_("Type"), max_length=255)  # , choices=[(t, t) for t in TASK_TYPES])
     """Full reference (with module) to task class name"""
 
     params = JSONField(blank=True)
     """Params specifying the task, that will be passed to user"""
 
-    # TODO count priority + interface
+    parent_id = models.ForeignKey('Task', models.CASCADE, null=True)
+    """Set if this task is a child of another"""
+
+    doc_id = models.IntegerField()
+    """Pointing to document_id being processed by this task"""
+
+    # TODO count priority + interface https://github.com/themoonsheep/moonsheep/issues/50
     priority = models.DecimalField(decimal_places=2, max_digits=3, default=1.0,
                                    validators=[validators.MaxValueValidator(1.0), validators.MinValueValidator(0.0)], )
     """Priority of the task, set manually or computed by defined functionD from other fields. Scale: 0.0 - 1.0"""
 
+    own_progress = models.DecimalField(decimal_places=3, max_digits=6, default=0,
+                                       validators=[validators.MaxValueValidator(100), validators.MinValueValidator(0)])
+
+    total_progress = models.DecimalField(decimal_places=3, max_digits=6, default=0,
+                                         validators=[validators.MaxValueValidator(100),
+                                                     validators.MinValueValidator(0)])
     # States
     OPEN = 'open'
     DIRTY = 'dirty'

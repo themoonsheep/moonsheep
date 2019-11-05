@@ -250,7 +250,7 @@ class TaskView(FormView):
 
         # Do the crosscheck if we have enough entries
         entries = Entry.objects.filter(task_id=task_id)
-        if entries.count() > 3:  # TODO setting how many entries do we want for crosscheck
+        if entries.count() >= MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK']:
             self.task_type.verify_and_save(list(entries))
 
     def _get_user_ip(self):

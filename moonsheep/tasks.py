@@ -1,10 +1,13 @@
 import logging
+import math
 from typing import List, Type
 
 from django.db import transaction
 from django.utils.decorators import classproperty
 
+from moonsheep import statistics
 from moonsheep.models import Task, Entry
+from moonsheep.settings import MOONSHEEP
 from .mapper import klass_from_name
 from .verifiers import MIN_CONFIDENCE, DEFAULT_DICT_VERIFIER
 from . import registry
@@ -12,6 +15,7 @@ from . import registry
 logger = logging.getLogger(__name__)
 
 
+# TODO rename to TaskType? add ABC class?
 class AbstractTask(object):
     N_ANSWERS = 1
 
@@ -69,12 +73,25 @@ class AbstractTask(object):
             # save verified data
             with transaction.atomic():
                 self.save_verified_data(crosschecked)
+
                 # create new tasks
                 self.after_save(crosschecked)
 
+                # update progress & state
+                self.instance.own_progress = 100
+                statistics.update_parents_progress(self.instance)
+
+                self.instance.state = Task.CROSSCHECKED
+                self.instance.save()
+
                 return True
         else:
-            # TODO: do something here
+            # update progress
+            self.instance.own_progress = 95 * (1 - math.exp(-2 / MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK'] * len(entries)))
+            statistics.update_parents_progress(self.instance)
+
+            self.instance.save()
+
             return False
 
         # TODO record somewhere on how many entries the crosscheck was done, update values if new crosscheck comes with higher rank
@@ -110,22 +127,20 @@ class AbstractTask(object):
         pass
 
     @classmethod
-    def create(cls, params: dict) -> Task:
+    def create(cls, params: dict, parent: Task) -> Task:
         """
-        Helper method for creating a new task.
+        Helper method for creating a new task of given type.
 
-        :param task_type: Type of task you want to create
         :param params: Params to initialize the task
+        :param parent: Parent task
         :return: created task
         """
 
-        t = Task(type=cls.name, params=params)
-        t.save()
+        return Task.objects.create(type=cls.name, params=params, parent_id=parent.id, doc_id=parent.doc_id)
 
-        return t
-
+    # TODO change convention
     @staticmethod
-    def create_task_instance(task: Task):
+    def create_task_instance(task: Task) -> 'AbstractTask':
         """
         Create relevant task instance.
 
@@ -138,10 +153,10 @@ class AbstractTask(object):
 
     # TODO call it from somewhere
     @staticmethod
-    def verify_task(task_or_id): # TODO, simplify to one type
+    def verify_task(task_or_id):  # TODO, simplify to one type
         if isinstance(task_or_id, int):
             task_or_id = Task.objects.get(task_or_id)
-        if not isinstance(task_or_id,  Task):
+        if not isinstance(task_or_id, Task):
             raise ValueError("task must be task_id (int) or a Task")
 
         # TODO find better name convention
