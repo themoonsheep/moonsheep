@@ -1,81 +1,53 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from sqlite3 import IntegrityError
+
+from django.contrib.auth import login
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from faker import Faker
+
+from moonsheep.models import User
+from moonsheep.settings import MOONSHEEP
 
 
-class UserManager(BaseUserManager):
-    """
-    Define a model manager for User model with no username field.
-
-    Copied and modified from django.contrib.auth.models.UserManager
-    """
-
-    use_in_migrations = True
-
-    def _create_user(self, username, email, password, **extra_fields):
-        """
-        Create and save a user with the given username, email, and password.
-        """
-        if not username:
-            raise ValueError('The given username must be set')
-        email = self.normalize_email(email)
-        username = self.model.normalize_username(username)
-        user = self.model(username=username, email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
+def generate_nickname(faker=Faker()):
+    return faker.name()
 
 
-    def create_user(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', False)
-        extra_fields.setdefault('is_superuser', False)
-        return self._create_user(username, email, password, **extra_fields)
+class UserRequiredMixin(LoginRequiredMixin):
+    """Mixin making sure an User is authenticated taking into account MOONSHEEP['USER_AUTHENTICATION'] modes."""
 
+    def dispatch(self, request, *args, **kwargs):
+        auth_mode = MOONSHEEP['USER_AUTHENTICATION']
 
-    def create_superuser(self, username, email, password, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        if auth_mode == 'email':
+            # Let user login with email & pass
+            return super().dispatch(request, *args, **kwargs)
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        elif auth_mode == 'nickname':
+            # If we see user for the first time then let him choose a nickname
+            self.login_url = reverse_lazy('choose-nickname')
+            return super().dispatch(request, *args, **kwargs)
 
-        return self._create_user(username, email, password, **extra_fields)
+        elif auth_mode == 'anonymous':
+            # Anonymous mean we will anyhow generate a nickname for user, just we won't show it
 
+            if not request.user.is_authenticated:
+                # Find unique nickname and log in user
+                while True:
+                    nickname = generate_nickname()
+                    try:
+                        user = User.objects.create_pseudonymous(nickname=nickname)
+                        break
+                    except IntegrityError:
+                        # Try again
+                        pass
 
+                # Attach user to the current session
+                login(request, user)
 
-class User(AbstractUser):
-    objects = UserManager()
+            return super().dispatch(request, *args, **kwargs)
 
-    username = None
-    email = models.EmailField(_('email address'), unique=True)
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
-
-
-# from django.contrib import admin
-# from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-#
-#
-# @admin.register(User)
-# class UserAdmin(DjangoUserAdmin):
-#     """Define admin model for custom User model with no username field."""
-#
-#     fieldsets = (
-#         (None, {'fields': ('email', 'password')}),
-#         (_('Personal info'), {'fields': ('first_name', 'last_name')}),
-#         (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser',
-#                                        'groups', 'user_permissions')}),
-#         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
-#     )
-#     add_fieldsets = (
-#         (None, {
-#             'classes': ('wide',),
-#             'fields': ('email', 'password1', 'password2'),
-#         }),
-#     )
-#     list_display = ('email', 'first_name', 'last_name', 'is_staff')
-#     search_fields = ('email', 'first_name', 'last_name')
-#     ordering = ('email',)
+        else:
+            # TODO configuration should be checked while loading moonsheep
+            raise NotImplementedError(f"USER_AUTHENTICATION={auth_mode} is not supported")

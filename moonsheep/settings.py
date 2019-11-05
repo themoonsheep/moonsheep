@@ -5,10 +5,15 @@
 # 2) importing them in a project: from moonsheep.settings import *  # NOQA
 # 3) updating them if needed: MOONSHEEP.update({})
 
+# TODO check all these settings on load
 MOONSHEEP = {
     'DEV_ROTATE_TASKS': False,
     'MIN_ENTRIES_TO_CROSSCHECK': 3,
+    'FAKER_LOCALE': 'it_IT',  # See supported locales at https://github.com/joke2k/faker#localization
+    'USER_AUTHENTICATION': 'nickname'  # available settings: 'nickname', 'anonymous', TODO email #60
 }
+
+AUTH_USER_MODEL = 'moonsheep.User'
 
 REST_FRAMEWORK = {
     'PAGE_SIZE': 10,

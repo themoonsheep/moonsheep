@@ -52,3 +52,21 @@ Options:
 - `--host` specify host for all files/dirs specified later
 - `-f` include files matching pattern
 - `--dry-run` - see which files will be imported without actually importing them
+
+## Users & authentication
+
+Moonsheep user is a custom class substituting `auth.User` as explained here: https://docs.djangoproject.com/en/2.2/topics/auth/customizing/#substituting-a-custom-user-model
+
+It uses email as an unique key and supports a range of authentication methods that can be configured by setting `MOONSHEEP['USER_AUTHENTICATION']` to:
+- `nickname` Auto-generated pseudonymous nicknames so volunteers can follow their statistics without leaving email or creating an account 
+    
+   In order to setup such authentication you need to add to your project's urls an entry dedicated to choosing randomly a nickname:
+   ```python
+   from moonsheep.views import ChooseNicknameView
+
+   urlpatterns = [an url
+     # name needs to be set to 'choose-nickname'
+     path('get-a-nickname', ChooseNicknameView.as_view(template_name='nickname.html'), name='choose-nickname'),
+   ]
+   ``` 
+- `anonymous` Users are created on the fly and automatically logged in so we know which contributions comes from who, but we don't store any identifying information. 

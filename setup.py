@@ -37,6 +37,7 @@ setup(
         'django-filter~=2.2',
         'PyUtilib~=5.7',
         'requests~=2.22',
+        'Faker~=2.0',
     ],
     tests_require=TEST_REQUIREMENTS,
     classifiers=[

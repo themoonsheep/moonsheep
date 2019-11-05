@@ -1,10 +1,88 @@
-from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.models import User, AbstractUser
-from django.db import models
-from django.utils.translation import ugettext as _
-from django.core import validators
 import json
+import random
+
+from django.contrib.auth.base_user import BaseUserManager
+from django.contrib.auth.models import AbstractUser
+from django.core import validators
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
+from django.utils.text import slugify
+from django.utils.translation import ugettext_lazy as _
+
+
+def generate_password(bits=160):
+    return "%x" % random.getrandbits(bits)
+
+
+class UserManager(BaseUserManager):
+    """
+    Define a model manager for User model with no username field.
+
+    Copied and modified from django.contrib.auth.models.UserManager
+    Kudos to https://www.fomfus.com/articles/how-to-use-email-as-username-for-django-authentication-removing-the-username
+    for pointing it out and giving a nice how-to
+    """
+
+    use_in_migrations = True
+
+    def _create_user(self, email, password, **extra_fields):
+        """Create and save a User with the given email and password."""
+        if not email:
+            raise ValueError('The given email must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and save a regular User with the given email and password."""
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(email, password, **extra_fields)
+
+    def create_superuser(self, email, password, **extra_fields):
+        """Create and save a SuperUser with the given email and password."""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self._create_user(email, password, **extra_fields)
+
+    def create_pseudonymous(self, nickname):
+        if not nickname:
+            raise ValueError('Nickname must be given')
+        email = self.normalize_email(slugify(nickname) + User.PSEUDONYMOUS_DOMAIN)
+
+        return self._create_user(email, generate_password(), nickname=nickname)
+
+
+class User(AbstractUser):
+    objects = UserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    username = None
+    email = models.EmailField(_('email address'), unique=True)
+
+    nickname = models.CharField(
+        _('username'),
+        max_length=150,
+        unique=True,
+        blank=True,
+        error_messages={
+            'unique': _("A user with that nickname already exists."),
+        },
+    )
+
+    # gdpr_consents TODO #139 string: policy codes separated by semicolon
+
+    PSEUDONYMOUS_DOMAIN = "@pseudonymous.moonsheep.org"
 
 
 class JSONField(models.TextField):
@@ -99,7 +177,7 @@ class Task(models.Model):
         return self.type + self.params
 
 
-class Entry(models.Model, ModelBackend):
+class Entry(models.Model):
     task = models.ForeignKey(Task, models.CASCADE)
     user = models.ForeignKey(User, models.CASCADE, null=True)  # TODO remove null in #130
     data = JSONField()
@@ -109,11 +187,3 @@ class Entry(models.Model, ModelBackend):
             # There can be only one user's entry for given task. Django doesn't support compound keys
             models.UniqueConstraint(fields=['task', 'user'], name='unique_task_user')
         ]
-
-# TODO Research how to best organize users
-# https://docs.djangoproject.com/en/2.2/topics/auth/customizing/
-# Custom user: https://www.fomfus.com/articles/how-to-use-email-as-username-for-django-authentication-removing-the-username
-# Custom backend: https://stackoverflow.com/a/37332393/803174
-
-# class User(AbstractUser):
-#     pass

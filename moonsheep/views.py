@@ -1,29 +1,28 @@
+import re
 from random import random
 
 import dpath.util
-import json
-import re
-
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
+from django.contrib.auth import login
+from django.db import IntegrityError
+from django.http import HttpResponseRedirect
 from django.http.request import QueryDict
+from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.decorators import method_decorator
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView, TemplateView
 
-from moonsheep.mapper import klass_from_name
 from moonsheep.importers.core import IDocumentImporter
+from moonsheep.mapper import klass_from_name
+from moonsheep.users import UserRequiredMixin, generate_nickname
+from . import registry
 from .exceptions import (
     PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate)
 from .forms import NewTaskForm
-from . import registry
+from .models import Task, Entry, User
 from .settings import MOONSHEEP
 from .tasks import AbstractTask
-from .models import Task, Entry
 
 
-class TaskView(FormView):
+class TaskView(UserRequiredMixin, FormView):
     task_type = None
     form_class = None
     error_message = None
@@ -301,6 +300,35 @@ class DocumentListView(TemplateView):
         })
         return kwargs
 
+
+class ChooseNicknameView(TemplateView):
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+
+        nickname = request.GET.get('nickname', None)
+        if nickname:
+            # try to create user with given nickname & login
+            user = None
+            try:
+                user = User.objects.create_pseudonymous(nickname=nickname)
+            except IntegrityError:
+                context.update({
+                    'nickname_taken': True
+                })
+
+            if user:
+                # Attach user to the current session
+                login(request, user)
+
+                # get redirect, if not go to home
+                url = request.GET.get('next', '/')
+                return redirect(url)
+
+        context.update({
+            'proposed_nickname': generate_nickname()
+        })
+
+        return self.render_to_response(context)
 
 
 def unpack_post(post: QueryDict) -> dict:

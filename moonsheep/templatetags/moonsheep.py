@@ -7,14 +7,13 @@ import django.db.models
 import urllib.parse
 
 from moonsheep.models import Task
-from moonsheep.tasks import AbstractTask
 from moonsheep.settings import MOONSHEEP
 
 register = Library()
 
 
 @register.inclusion_tag('token.html')
-def moonsheep_token(task: AbstractTask):
+def moonsheep_token(task: 'AbstractTask'):
     return {
         'task_id': task.instance.id,
         'task_type': task.name

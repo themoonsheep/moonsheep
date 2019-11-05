@@ -1,3 +1,5 @@
+from moonsheep.settings import * #NOQA
+
 SECRET_KEY = 'fake-key'
 
 INSTALLED_APPS = [

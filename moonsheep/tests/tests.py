@@ -18,6 +18,9 @@ from moonsheep.verifiers import equals, OrderedListVerifier
 from moonsheep.views import unpack_post, TaskView, NewTaskFormView
 
 
+# TODO dev env: `DJANGO_SETTINGS_MODULE=moonsheep.tests.migrations_settings django-admin makemigrations` should return that everything is up to date
+# TODO dev document running migrations
+
 # TODO: FIXME
 # class PresenterTests(UnitTestCase):
 #
