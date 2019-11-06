@@ -1,12 +1,13 @@
 import collections
 import inspect
-import statistics
 import operator
+import statistics
 from typing import List
 
 MIN_CONFIDENCE = 1
 
 
+# TODO list of what?
 def max_index(values: list) -> (int, any):
     """
     Return the index and the value of a maximal item
@@ -16,6 +17,7 @@ def max_index(values: list) -> (int, any):
     return max(values.items(), key=operator.itemgetter(1))
 
 
+# TODO list of what? , document method
 def equals(values: list):
     result_dict = {}
     for obj in values:
@@ -25,7 +27,7 @@ def equals(values: list):
             result_dict[obj] = 1
 
     best_match = max(result_dict.items(), key=operator.itemgetter(1))[0]
-    confidence = result_dict[best_match] / len(values)
+    confidence = result_dict[best_match] / len(values) # TODO Confidence Decimal
     return best_match, confidence
 
 
@@ -34,6 +36,7 @@ class TaskVerifier:
     Operates in a context of a Task defining nested fields which verification can be overriden
     by defining verify_{field} methods.
     """
+
     def __init__(self, task, model_prefix):
         self.task = task
         self.model_prefix = model_prefix + '__'
@@ -41,8 +44,10 @@ class TaskVerifier:
     def verifier_for(self, value_type):
         if value_type is dict:
             verifier = DEFAULT_DICT_VERIFIER
+
         elif value_type is list:
             verifier = DEFAULT_LIST_VERIFIER
+
         else:
             # basic type I guess
             verifier = DEFAULT_BASIC_VERIFIER_METHOD
@@ -51,12 +56,11 @@ class TaskVerifier:
 
 
 class DictVerifier(TaskVerifier):
-    def __call__(self, entries: list):
+    def __call__(self, entries: List[dict]):
         """
         Verify independently all fields in a dict.
 
-        :param entries: list containing taskrun dictionaries
-        :type entries: list
+        :param entries: Sequence[dict] containing taskrun dictionaries
         :return: dictionary containing tuples of verified fields
         """
         field_entries = collections.defaultdict(list)
@@ -75,7 +79,7 @@ class DictVerifier(TaskVerifier):
 
             # Handle custom verification methods
             default_verifier = self.verifier_for(type(values[0]))
-            verifier = getattr(self, "verify_" + self.model_prefix + fld, default_verifier)
+            verifier = getattr(self, "verify_" + self.model_prefix + fld, default_verifier) # TODO document it
 
             # Create instance of verifier class if needed
             if inspect.isclass(verifier):
@@ -83,7 +87,7 @@ class DictVerifier(TaskVerifier):
 
             value, confidence = verifier(values)
             results_dict[fld] = value
-            confidences_list.append(confidence)
+            confidences_list.append(confidence) # TODO wondering why we don't store per-field confidence?, it would be helpful for admin to manually check entries, the question is how to store it?
 
         overall_confidence = min(confidences_list)
         return results_dict, overall_confidence

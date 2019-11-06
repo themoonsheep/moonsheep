@@ -63,9 +63,9 @@ def import_documents(importer, tasks_to_create=[], **options):
             Task.objects.create(**{
                 'type': t,
                 'params': {
-                    model_pk: d.id,  # poointer to document object, might be helpful for debugging
-                    'url': url
+                    'url': url,
                 },
+                'doc_id': d.id,  # pointer to document object, might be helpful for debugging
                 'priority': 1.0,  # TODO compute when setting https://github.com/themoonsheep/moonsheep/issues/50
             })
 

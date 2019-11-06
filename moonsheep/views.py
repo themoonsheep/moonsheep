@@ -1,5 +1,5 @@
 import re
-from random import random
+import random
 
 import dpath.util
 from django.contrib.auth import login
@@ -76,17 +76,19 @@ class TaskView(UserRequiredMixin, FormView):
 
         form = self.get_form()
 
-        # no form defined in the task, no field validation then, but we continue
+        # no form defined in the task, no field validation then so we just save the entry
         if form is None:
             data = unpack_post(request.POST)
             # TODO what to do if we have forms defined? is Django nested formset a way to go?
             # Check https://stackoverflow.com/questions/20894629/django-nested-inline-formsets
             # Check https://docs.djangoproject.com/en/2.0/ref/contrib/admin/#django.contrib.admin.InlineModelAdmin
-            self._save_entry(data)
+            self._save_entry(self.request.POST['_task_id'], data)
             return HttpResponseRedirect(self.get_success_url())
 
         # there is a task's form defined, validate fields with it
         if form.is_valid():
+            # and if is valid entry will be saved
+            # TODO ! we should show some Thank you page! and option to stop #141
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
@@ -145,14 +147,7 @@ class TaskView(UserRequiredMixin, FormView):
         return form_class(**self.get_form_kwargs())
 
     def form_valid(self, form):
-        if MOONSHEEP['DEV_ROTATE_TASKS']:
-            # Test saving data: let's assume that this entry is all we need for crosscheck
-            self.task_type.save_verified_data(form.cleaned_data)
-            # create new tasks
-            self.task_type.after_save(form.cleaned_data)
-
-        else:
-            self._save_entry(self.request.POST['_task_id'], form.cleaned_data)
+        self._save_entry(self.request.POST['_task_id'], form.cleaned_data)
 
         return super(TaskView, self).form_valid(form)
 
@@ -164,7 +159,7 @@ class TaskView(UserRequiredMixin, FormView):
             return self.get_random_mocked_task_data(task_id)
 
         else:
-            task = Task.objects.get(task_id)
+            task = Task.objects.get(pk=task_id)
             return AbstractTask.create_task_instance(task)
 
     def _get_new_task(self) -> AbstractTask:
@@ -187,7 +182,6 @@ class TaskView(UserRequiredMixin, FormView):
         # Make sure that tasks are imported before this code is run, ie. in your project urls.py
 
         # Allow to test one type definition, by passing it as GET parameter
-        # TODO document it
         if task_type is None:
             task_type = self.request.GET.get('task_type', None)
 
@@ -208,12 +202,12 @@ class TaskView(UserRequiredMixin, FormView):
         task_class = klass_from_name(task_type)
 
         # Developers should provide mocked params for the task
-        has_mocked_params = True
+        has_mocked_params = False
         try:
-            if not hasattr(task_class, 'mocked_params'):
-                has_mocked_params = False
-        except TypeError as e:
-            has_mocked_params = False
+            if hasattr(task_class, 'mocked_params'):
+                has_mocked_params = True
+        except TypeError:
+            pass
 
         if not has_mocked_params:
             raise NotImplementedError(
@@ -226,31 +220,45 @@ class TaskView(UserRequiredMixin, FormView):
     def choose_a_task(self) -> Task:
         """
         Choose a task to be served to user
+
+        By default it select 20 open tasks that user didn't contribute to and chooses one randomly
         """
         # TODO make it pluggable / create interface for it
-        tasks = Task.objects.filter(state=Task.OPEN).order_by('-priority')[:20]
+        # TODO implement priority setting (how to set priority for the imported task?)
+
+        # TODO test exclude works properly
+        tasks = Task.objects.filter(state=Task.OPEN).exclude(entry__user=self.request.user).order_by('-priority')[:20]
 
         if not tasks:
             raise NoTasksLeft()
 
-        # choose task at random, so everyone won't get the same task
+        # choose task at random from the top 20, so everyone won't get the same task
         # TODO otherwise an "open_count" could help to limit it,
         #  especially where there are a lot of volunteers and long tasks
-        return tasks[random.choice()]
+        return random.choice(tasks)
 
     def _save_entry(self, task_id, data) -> None:
         """
         Save entry in the database and run the crosschecking
         """
-        # TODO in #130
-        user = None
+        if MOONSHEEP['DEV_ROTATE_TASKS']:
+            # In this mode we don't want to create entries
+            # We rather skip directly to saving models assuming that one entry is all we need for crosscheck
+            # Warning: This does not test if cross-checking is working properly.
+            # TODO How to test cross-checking?
+            # TODO shouldn't two method below be one?
+            self.task_type.save_verified_data(data)
 
-        Entry(task_id=task_id, user=user, data=data).save()
+            # create new tasks
+            self.task_type.after_save(data)
+            return
 
-        # Do the crosscheck if we have enough entries
-        entries = Entry.objects.filter(task_id=task_id)
-        if entries.count() >= MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK']:
-            self.task_type.verify_and_save(list(entries))
+        # Create new entry
+        Entry(task_id=task_id, user=self.request.user, data=data).save()
+        # TODO this should be committed
+
+        # Run verification, saving, progress updates
+        self.task_type.verify_and_save(task_id)
 
     def _get_user_ip(self):
         return self.request.META.get(

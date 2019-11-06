@@ -13,6 +13,26 @@ workon myapp
 python runserver 0.0.0.0:8000
 ```
 
+## Dev tools
+
+Moonsheep packs some tools and configuration options that speeds up development of projects.
+
+### DEV_ROTATE_TASKS
+
+To be used while develop tasks (forms, data saving, creation of subtasks).
+
+Setting `MOONSHEEP['DEV_ROTATE_TASKS'] = True` has the following effects:
+1. You don't need to create tasks in the database
+1. When opening a transcription view defined task types are rotated.
+   - Each refresh gives a new task type with mocked data.   
+   - On every task type you need to define a function that will return mocked params:
+   `@classproperty def mocked_params(cls) -> dict:`   
+   - You might pass `?task_type=` query parameter to disable rotation and stay focused on one task type.
+1. When you submit transcription form the entry is not created. Code skips cross-checking and invokes directly saving models (`save_verified_data`)
+   and creating new tasks `after_save(data)` so these features can be tested.
+   
+   If you have subtasks then most likely saving will fail because of some missing models.
+   It is recommended to write project tests covering saving data and creating dependant tasks.
 
 ## Importing documents
 

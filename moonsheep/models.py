@@ -108,7 +108,8 @@ class JSONField(models.TextField):
         try:
             if isinstance(value, str):
                 # TODO test datetime saving `object_hook`
-                return json.loads(value, cls=DjangoJSONEncoder)
+                # TODO most likely we would have to add some guessing for the types encoded by DjangoJSONEncoder
+                return json.loads(value)
         except ValueError:
             pass
         return value
@@ -138,19 +139,22 @@ class Task(models.Model):
     params = JSONField(blank=True)
     """Params specifying the task, that will be passed to user"""
 
-    parent_id = models.ForeignKey('Task', models.CASCADE, null=True)
+    parent = models.ForeignKey('Task', models.CASCADE, null=True, related_name="children")
     """Set if this task is a child of another"""
 
     doc_id = models.IntegerField()
     """Pointing to document_id being processed by this task"""
 
     # TODO count priority + interface https://github.com/themoonsheep/moonsheep/issues/50
-    priority = models.DecimalField(decimal_places=2, max_digits=3, default=1.0,
+    # TODO ! document how to set priority for first task and all dependants
+    priority = models.DecimalField(decimal_places=2, max_digits=3, default=0.5,
                                    validators=[validators.MaxValueValidator(1.0), validators.MinValueValidator(0.0)], )
     """Priority of the task, set manually or computed by defined functionD from other fields. Scale: 0.0 - 1.0"""
 
     own_progress = models.DecimalField(decimal_places=3, max_digits=6, default=0,
                                        validators=[validators.MaxValueValidator(100), validators.MinValueValidator(0)])
+
+    # TODO could add confidence here (maybe packed with all fields confidences)
 
     total_progress = models.DecimalField(decimal_places=3, max_digits=6, default=0,
                                          validators=[validators.MaxValueValidator(100),
@@ -174,12 +178,12 @@ class Task(models.Model):
         ]
 
     def __str__(self):
-        return self.type + self.params
+        return f"{self.type}[{self.id}]"
 
 
 class Entry(models.Model):
     task = models.ForeignKey(Task, models.CASCADE)
-    user = models.ForeignKey(User, models.CASCADE, null=True)  # TODO remove null in #130
+    user = models.ForeignKey(User, models.CASCADE)
     data = JSONField()
 
     class Meta:
@@ -187,3 +191,4 @@ class Entry(models.Model):
             # There can be only one user's entry for given task. Django doesn't support compound keys
             models.UniqueConstraint(fields=['task', 'user'], name='unique_task_user')
         ]
+        verbose_name_plural = "entries"

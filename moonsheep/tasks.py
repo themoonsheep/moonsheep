@@ -20,10 +20,8 @@ class AbstractTask(object):
     N_ANSWERS = 1
 
     def __init__(self, instance: Task):
-        self.verified = False
-
         self.instance = instance
-        self.id = instance.id
+        self.id = instance.id  # TODO attr rather than field
         self.params = instance.params
 
         # per-instance overrides
@@ -58,48 +56,61 @@ class AbstractTask(object):
             'url': url
         }
 
-    def verify_and_save(self, entries: List[Entry]) -> bool:
+    def verify_and_save(self, task_id: int) -> bool:
         """
-        It crosschecks users' answers (entries) and if they match data is saved to structured db.
+        Called after a new entry was created. It crosschecks users' answers (entries) and if they match data is saved to structured db.
 
-        Entries are considered cross-checked if confidence returned from the checking algorithm is greater than MIN_CONFIDENCE
+        Entries are considered cross-checked if confidence returned from the checking algorithm is greater than MIN_CONFIDENCE.
         TODO otherwise...I don't know yet (will be invoked again or called "dirty data" - to be checked by moderator)
-        :param entries: list containing entries
-        :return: True if verified otherwise False
-        """
-        crosschecked, confidence = self.cross_check(entries)
-        self.verified = confidence >= MIN_CONFIDENCE
-        if self.verified:
-            # save verified data
-            with transaction.atomic():
-                self.save_verified_data(crosschecked)
 
-                # create new tasks
-                self.after_save(crosschecked)
+        Progress of a task (and its parents) is being updated here.
+
+        :param task_id: Identifier of the task
+        :return: True if cross-verified otherwise False
+        """
+
+        verified = False
+
+        # Do the crosscheck if we have enough entries
+        entries = Entry.objects.filter(task_id=task_id)
+        entries_count = entries.count()
+
+        if entries_count >= MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK']:
+            # So far we only take real data into account but in the future Verifiers might want also to look at users' "trustworthiness"
+            crosschecked, confidence = self.cross_check(list([entry.data for entry in entries]))
+            # TODO record somewhere on how many entries the crosscheck was done, update values if new crosscheck comes with higher rank?
+
+            verified = confidence >= MIN_CONFIDENCE  # TODO MIN_CONFIDENCE configurable
+            if verified:
+                # save verified data
+                with transaction.atomic():
+                    self.save_verified_data(crosschecked)
+
+                    # create new tasks
+                    self.after_save(crosschecked)
 
                 # update progress & state
                 self.instance.own_progress = 100
+                self.instance.state = Task.CROSSCHECKED
+
                 statistics.update_parents_progress(self.instance)
 
-                self.instance.state = Task.CROSSCHECKED
-                self.instance.save()
+        # Entry was added so we should update progress if it's not at 100 already
+        if self.instance.own_progress != 100:
+            self.instance.own_progress = 95 * (
+                    1 - math.exp(-2 / MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK'] * entries_count))
 
-                return True
-        else:
-            # update progress
-            self.instance.own_progress = 95 * (1 - math.exp(-2 / MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK'] * len(entries)))
             statistics.update_parents_progress(self.instance)
 
-            self.instance.save()
+        # Task's state might have changed also, so save that data
+        self.instance.save()
 
-            return False
+        return verified
 
-        # TODO record somewhere on how many entries the crosscheck was done, update values if new crosscheck comes with higher rank
-
-    def cross_check(self, entries: list) -> (dict, float):
+    def cross_check(self, entries: List[dict]) -> (dict, float):
         """
         Cross check all entries recursively
-        :param entries: Entries for a given task
+        :param entries: Entries data for a given task
         :return (dict, float): (results, confidence)
         """
 
@@ -127,7 +138,7 @@ class AbstractTask(object):
         pass
 
     @classmethod
-    def create(cls, params: dict, parent: Task) -> Task:
+    def create(cls, **properties) -> Task:
         """
         Helper method for creating a new task of given type.
 
@@ -135,8 +146,12 @@ class AbstractTask(object):
         :param parent: Parent task
         :return: created task
         """
+        properties.update({
+            'type': cls.name,
+            'doc_id': properties['parent'].doc_id if 'parent' in properties else None
+        })
 
-        return Task.objects.create(type=cls.name, params=params, parent_id=parent.id, doc_id=parent.doc_id)
+        return Task.objects.create(**properties)
 
     # TODO change convention
     @staticmethod
@@ -150,21 +165,6 @@ class AbstractTask(object):
 
         klass = klass_from_name(task.type)
         return klass(task)
-
-    # TODO call it from somewhere
-    @staticmethod
-    def verify_task(task_or_id):  # TODO, simplify to one type
-        if isinstance(task_or_id, int):
-            task_or_id = Task.objects.get(task_or_id)
-        if not isinstance(task_or_id, Task):
-            raise ValueError("task must be task_id (int) or a Task")
-
-        # TODO find better name convention
-        task_instance: Task = task_or_id
-        entries = Entry.objects.filter(task=task_instance)
-
-        task = AbstractTask.create_task_instance(task_instance)
-        task.verify_and_save(entries)
 
     def __repr__(self):
         return "<{} id={} params={}".format(self.__class__.name, self.id, self.params)
