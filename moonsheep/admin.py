@@ -30,7 +30,7 @@ class UserAdmin(DjangoUserAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ['id', 'type']
+    list_display = ['id', 'type', 'doc_id', 'own_progress', 'total_progress']
 
 
 @admin.register(Entry)

@@ -1,5 +1,5 @@
-import re
 import random
+import re
 
 import dpath.util
 from django.contrib.auth import login
@@ -297,16 +297,41 @@ class DocumentListView(TemplateView):
     template_name = 'moonsheep/documents.html'
 
     def get_context_data(self, **kwargs):
-        documents = registry.get_document_model().objects.all()
+        documents = registry.get_document_model().objects.all().order_by('-progress')
         importers = IDocumentImporter.implementations()
 
-        kwargs = super().get_context_data(**kwargs)
-        kwargs.update({
+        context = super().get_context_data(**kwargs)
+        context.update({
             # TODO paging, etc.
             'documents': documents,
             'importers': importers
         })
-        return kwargs
+
+        get_doc_details = self.request.GET.get('details_of', None)
+        if get_doc_details:
+            # Get progress of all tasks and their subtasks
+
+            get_doc_details = int(get_doc_details)
+
+            tasks = Task.objects.filter(doc_id=get_doc_details).order_by('id')
+
+            nodes = {None: {'children': []}}
+            for t in tasks:
+                node = {
+                    "task": t,
+                    "children": []
+                }
+                # Register node
+                nodes[t.id] = node
+                # Add it to parent node
+                nodes[t.parent_id]['children'].append(node)
+
+            context.update({
+                'progress_tree': nodes[None],
+                'details_doc_id': get_doc_details
+            })
+
+        return context
 
 
 class ChooseNicknameView(TemplateView):

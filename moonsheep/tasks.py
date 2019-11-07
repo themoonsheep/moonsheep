@@ -93,14 +93,14 @@ class AbstractTask(object):
                 self.instance.own_progress = 100
                 self.instance.state = Task.CROSSCHECKED
 
-                statistics.update_parents_progress(self.instance)
+                statistics.update_total_progress(self.instance)
 
         # Entry was added so we should update progress if it's not at 100 already
         if self.instance.own_progress != 100:
             self.instance.own_progress = 95 * (
                     1 - math.exp(-2 / MOONSHEEP['MIN_ENTRIES_TO_CROSSCHECK'] * entries_count))
 
-            statistics.update_parents_progress(self.instance)
+            statistics.update_total_progress(self.instance)
 
         # Task's state might have changed also, so save that data
         self.instance.save()
@@ -165,6 +165,9 @@ class AbstractTask(object):
 
         klass = klass_from_name(task.type)
         return klass(task)
+
+    def average_subtasks_count(self):
+        raise NotImplementedError(f"{self.__class__.name} should implement average_subtasks_count()")
 
     def __repr__(self):
         return "<{} id={} params={}".format(self.__class__.name, self.id, self.params)

@@ -1,0 +1,20 @@
+{% load moonsheep %}
+{% for n in node.children %}
+<tr>
+    <td></td>
+    <td style="padding-left:{{ indent }}px; background-color: #d0c6d042;">
+        {{ n.task.type|task_name }} [{{ n.task.id}}]
+        <div class="progress-bar-wrapper" style="float:right; min-width: 90px; width: 14%;">
+            <div class="progress-bar" data-width="{{ n.task.own_progress|stringformat:'d' }}"></div>
+            <div class="progress-number"></div>
+        </div>
+    </td>
+    <td style="background-color: #d0c6d042;">
+        <div class="progress-bar-wrapper">
+            <div class="progress-bar" data-width="{{ n.task.total_progress|stringformat:'d' }}"></div>
+            <div class="progress-number"></div>
+        </div>
+    </td>
+</tr>
+{% include "moonsheep/documents_detailed_progress.html" with node=n indent=indent|add:"20" %}
+{% endfor %}

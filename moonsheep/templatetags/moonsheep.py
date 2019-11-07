@@ -27,26 +27,11 @@ def document_change_url(instance):
     return reverse(view_name, args=(instance.id,))
 
 
-@register.simple_tag
-def progress_of(document_or_task):
-    if isinstance(document_or_task, django.db.models.Model):
-        # document
-        doc = document_or_task
-        tasks = MOONSHEEP['DOCUMENT_INITIAL_TASKS']
-        # TODO #13
-    else:
-        task: Task = document_or_task
-        return task.own_progress
-        # TODO
-
-    # TODO #13 #138
-    return 81
-
-
 @register.filter
 @stringfilter
 def task_name(value):
     return value.split('.').pop()
+
 
 @register.filter
 @stringfilter

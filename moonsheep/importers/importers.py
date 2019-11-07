@@ -1,12 +1,11 @@
 from abc import abstractmethod
 from typing import Sequence
 
-from django.db import models, IntegrityError
-from django.http import HttpResponseBadRequest, HttpResponseRedirect, QueryDict
+from django.db import IntegrityError
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.urls import reverse
 from django.views.generic.base import TemplateView
 
-import opora
 from moonsheep.models import Task
 from moonsheep.plugins import PluginError, Interface
 from moonsheep.registry import TASK_TYPES
@@ -31,7 +30,6 @@ def import_documents(importer, tasks_to_create=[], **options):
 
     # Create domain object based on document
     model = MOONSHEEP['DOCUMENT_MODEL']
-    model_pk = str(model._meta.pk)
     model_label = model._meta.label
 
     dry_run = options.pop('dry_run', False)

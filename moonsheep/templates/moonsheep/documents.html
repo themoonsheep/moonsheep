@@ -47,14 +47,23 @@
             {% for d in documents %}
             <tr>
                 <td><a href="{% document_change_url d %}">{{ d }}</a></td>
-                <td><a href="{{ d.url }}" target="_blank">{{ d.url|pretty_url }}</a></td>
+                <td><a href="{{ d.url }}" target="_blank">{{ d.url|pretty_url }}</a>
+                    {% if d.id == details_doc_id %}
+                    <a style="float:right;" href="?">-</a>
+                    {% else %}
+                    <a style="float:right;" href="?details_of={{ d.id }}">+</a>
+                    {% endif %}
+                </td>
                 <td>
                     <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="{% progress_of d %}"></div>
+                        <div class="progress-bar" data-width="{{ d.progress|stringformat:'d' }}"></div>
                         <div class="progress-number"></div>
                     </div>
                 </td>
             </tr>
+            {% if progress_tree and d.id == details_doc_id %}
+                {% include "moonsheep/documents_detailed_progress.html" with node=progress_tree indent=40 %}
+            {% endif %}
             {% endfor %}
             </tbody>
         </table>
