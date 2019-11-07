@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from moonsheep.importers.http import HttpDocumentImporter
-from moonsheep.importers.core import import_documents
+from moonsheep.importers.importers import import_documents
 
 
 class Command(BaseCommand):

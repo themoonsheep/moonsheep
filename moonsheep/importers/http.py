@@ -7,7 +7,7 @@ import requests
 from django.core.management import BaseCommand
 from django.http import QueryDict
 
-from moonsheep.importers.core import IDocumentImporter
+from moonsheep.importers.importers import IDocumentImporter
 from moonsheep.plugins import Plugin, implements
 
 

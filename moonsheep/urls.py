@@ -17,7 +17,7 @@ from django.conf.urls import url
 from django.urls import path
 from django.views.generic import TemplateView
 
-from moonsheep.importers.core import ImporterView
+from moonsheep.importers.importers import ImporterView
 from .views import NewTaskFormView, TaskListView, ManualVerificationView, DocumentListView
 
 urlpatterns = [

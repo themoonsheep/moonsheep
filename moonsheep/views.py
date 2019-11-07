@@ -10,7 +10,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic import FormView, TemplateView
 
-from moonsheep.importers.core import IDocumentImporter
+from moonsheep.importers.importers import IDocumentImporter
 from moonsheep.mapper import klass_from_name
 from moonsheep.users import UserRequiredMixin, generate_nickname
 from . import registry
