@@ -7,6 +7,7 @@ class AppApi:
         self.app_label = app_label
         self.router = routers.DefaultRouter()
 
+        # Iterate through all defined models in the app and create endpoints for them
         for slug, klazz in apps.get_app_config(app_label).models.items():
             class Meta:
                 model = klazz
@@ -21,7 +22,7 @@ class AppApi:
                 serializer_class=serializer_cls
             ))
 
-            klazz.objects
+            # Register endpoints
             self.router.register(slug, viewset_cls)
 
     @property
