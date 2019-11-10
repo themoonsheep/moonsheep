@@ -90,3 +90,29 @@ It uses email as an unique key and supports a range of authentication methods th
    ]
    ``` 
 - `anonymous` Users are created on the fly and automatically logged in so we know which contributions comes from who, but we don't store any identifying information. 
+
+## Templates
+
+### Thank you note
+
+Moonsheep sends some messages to your users, to show them include the following in your transcription (and possibly other) templates:
+
+```html
+    <link rel="stylesheet" href="{% static "css/moonsheep_style.css" %}">
+</head>
+
+    {% if messages %}
+    <ul class="ms-messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|safe }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+```
+
+After each transcription it will show "Thank you! Are you ready for a next one? Take a pause?". 
+ "Take a pause?" will be a link to `finish-transcription` view that you need to define:
+ ```python
+    url(r'^$', TemplateView.as_view(template_name='homepage.html'), name='finish-transcription'),
+    url(r'^$', TemplateView.as_view(template_name='homepage.html'), name='home'),
+```

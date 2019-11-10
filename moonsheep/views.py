@@ -2,12 +2,14 @@ import random
 import re
 
 import dpath.util
+from django.contrib import messages
 from django.contrib.auth import login
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from django.http.request import QueryDict
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 from django.views.generic import FormView, TemplateView
 
 from moonsheep.importers.importers import IDocumentImporter
@@ -88,7 +90,6 @@ class TaskView(UserRequiredMixin, FormView):
         # there is a task's form defined, validate fields with it
         if form.is_valid():
             # and if is valid entry will be saved
-            # TODO ! we should show some Thank you page! and option to stop #141
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
@@ -255,10 +256,13 @@ class TaskView(UserRequiredMixin, FormView):
 
         # Create new entry
         Entry(task_id=task_id, user=self.request.user, data=data).save()
-        # TODO this should be committed
 
         # Run verification, saving, progress updates
         self.task_type.verify_and_save(task_id)
+
+        messages.add_message(self.request, messages.SUCCESS, _(
+            'Thank you! Are you ready for a next task? Or {linkopen}take a pause?{linkclose}').format(
+                linkopen='<a class="finish-transcription" href="' + reverse('finish-transcription') + '">', linkclose='</a>'))
 
     def _get_user_ip(self):
         return self.request.META.get(

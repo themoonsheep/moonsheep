@@ -22,3 +22,32 @@ body {
 #ms-message-status {
   padding: 50px 0;
 }
+
+.ms-messages {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 0);
+    z-index: 10;
+    margin-top: 10px;
+
+    li {
+        list-style-type: none;
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    li a {
+        color: white;
+        text-decoration: underline;
+    }
+
+    li.success {
+        color: white;
+        background-color: #3fb53f;
+    }
+
+    li.error {
+        color: white;
+        background-color: #d24141;
+    }
+}
