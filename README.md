@@ -93,6 +93,21 @@ It uses email as an unique key and supports a range of authentication methods th
 
 ## Templates
 
+### Widgets
+
+There is number of template tags that provide information on progress.
+
+#### stats_documents_verified
+```html
+{% load moonshee[ %}
+<ul>
+    {% stats_documents_verified as docs %}
+    <li>{{ docs.total_progress|floatformat:2 }}% total progress</li>
+    <li>{{ docs.verified }} / {{ docs.total }} [{{ docs.verified_percents }}%] documents verified</li>
+    <li>{{ docs.remaining }} remaining to be verified</li>
+</ul>
+```
+
 ### Thank you note
 
 Moonsheep sends some messages to your users, to show them include the following in your transcription (and possibly other) templates:
