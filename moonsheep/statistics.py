@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import psycopg2
+from django.db import connections
 from django.db.models import F, Avg, Count
 
 from moonsheep import models
@@ -49,3 +51,78 @@ def update_total_progress(task: models.Task):
 
     Document = MOONSHEEP['DOCUMENT_MODEL']
     Document.objects.filter(id=task.doc_id).update(progress=doc_progress)
+
+
+def stats_documents_verified():
+    """
+    Shows stats regarding fully verified documents
+
+    :return: dict
+    - verified
+    - verified_percent
+    - total
+    - total_progress
+    - remaining
+    """
+    # TODO cache it
+
+    table_name = MOONSHEEP['DOCUMENT_MODEL'].objects.model._meta.db_table
+
+    with connections['default'].connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+        cursor.execute(f"""SELECT 
+            COUNT(CASE WHEN progress = 100 THEN 1 END) AS "verified", 
+            COUNT("id") AS "total", 
+            AVG("progress") AS "total_progress" 
+        FROM {table_name}
+        """)
+        docs = cursor.fetchone()
+
+    docs['verified_percents'] = Decimal(docs['verified']) / docs['total']
+    docs['remaining'] = int(docs['total'] - docs['verified'])
+
+    return docs
+
+
+def stats_users():
+    """
+    Show user stats
+
+    :return: dict
+    - registered
+    - participated (at least one entry)
+    - entries_total - number of all entries sent
+    - active TODO #140
+    """
+    # TODO cache it
+
+    with connections['default'].connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+        cursor.execute("""
+select
+	count(id) as registered,
+	count(id) FILTER(where entries_count > 0) as participated,
+	sum(entries_count) as entries_total
+	from (
+	select
+		u.id as id,
+		count(e.id) as "entries_count"
+		-- max(e.timestamp)
+	from
+		"moonsheep_user" u
+	left join "moonsheep_entry" e on
+		e.user_id = u.id
+	where
+		u.is_staff = false
+	group by u.id) u
+""")
+
+        users = cursor.fetchone()
+
+    return users
+
+# TODO
+# def stats_users_leaderboards():
+#     """
+#     Show user leaderboards:
+#     - by max entries
+#     - by accuracy
+#     """

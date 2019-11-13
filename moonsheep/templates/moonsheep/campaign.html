@@ -3,22 +3,26 @@
 {% load moonsheep %}
 
 {% block header %}
-    <div class="col-md-6">
-        <h1>First Campaign</h1>
+<div class="col-md-6">
+    <h1>First Campaign</h1>
 
-        <ul>
-            {% stats_documents_verified as docs %}
-            <li>{{ docs.total_progress|floatformat:2 }}% total progress</li>
-            <li>{{ docs.verified }} / {{ docs.total }} [{{ docs.verified_percents }}%] documents verified</li>
-            <!-- TODO #22 <li>Time elapsed 27 hours</li> -->
-            <!-- TODO manual verification #5 <li>2 / 8 documents waiting verification</li> -->
-        </ul>
-    </div>
-    <div class="col-md-2">
-        <button class="btn btn-small btn-purple">Active <img src="{% static 'images/admin_active.svg' %}"
-                                                             alt="Active Icon"></button>
-    </div>
-    <div class="col-md-4 relbox">
+    <ul>
+        {% stats_documents_verified as docs %}
+        <li>{{ docs.total_progress|floatformat:2 }}% total progress</li>
+        <li>{{ docs.verified }} / {{ docs.total }} [{{ docs.verified_percent }}%] documents verified</li>
+        <!-- TODO #22 <li>Time elapsed 27 hours</li> -->
+        <!-- TODO manual verification #5 <li>2 / 8 documents waiting verification</li> -->
+        {% stats_users as users %}
+        <li>{{ users.registered }} users registered</li>
+        <li>{{ users.participated }} users participated</li>
+        <li>{{ users.entries_total}} entries sent</li>
+    </ul>
+</div>
+<div class="col-md-2">
+    <button class="btn btn-small btn-purple">Active <img src="{% static 'images/admin_active.svg' %}"
+                                                         alt="Active Icon"></button>
+</div>
+<div class="col-md-4 relbox">
 
         <div class="row">
             <div class="col-md-6">

@@ -103,7 +103,7 @@ There is number of template tags that provide information on progress.
 <ul>
     {% stats_documents_verified as docs %}
     <li>{{ docs.total_progress|floatformat:2 }}% total progress</li>
-    <li>{{ docs.verified }} / {{ docs.total }} [{{ docs.verified_percents }}%] documents verified</li>
+    <li>{{ docs.verified }} / {{ docs.total }} [{{ docs.verified_percent }}%] documents verified</li>
     <li>{{ docs.remaining }} remaining to be verified</li>
 </ul>
 ```
