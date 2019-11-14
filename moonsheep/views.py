@@ -1,5 +1,6 @@
 import random
 import re
+from typing import Sequence
 
 import dpath.util
 from django.contrib import messages
@@ -42,7 +43,7 @@ class TaskView(UserRequiredMixin, FormView):
         :return: path to the template (string) or Django's Form class
         """
         try:
-            self.task_type = self._get_new_task()
+            self.task_type = self._get_task()
             self.configure_template_and_form()
         except NoTasksLeft:
             self.error_message = 'Task Chooser returned no tasks'
@@ -95,7 +96,7 @@ class TaskView(UserRequiredMixin, FormView):
             return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
-        context = super(TaskView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context.update({
             'project_id': 'fake it'  # TODO remove it everywhere
         })
@@ -155,26 +156,24 @@ class TaskView(UserRequiredMixin, FormView):
     # End of FormView override
     # ========================
 
-    def _get_task(self, task_id) -> AbstractTask:
-        if MOONSHEEP['DEV_ROTATE_TASKS']:
-            return self.get_random_mocked_task_data(task_id)
-
-        else:
-            task = Task.objects.get(pk=task_id)
-            return AbstractTask.create_task_instance(task)
-
-    def _get_new_task(self) -> AbstractTask:
+    def _get_task(self, task_id: str = None) -> AbstractTask:
         """
-        Mechanism responsible for getting tasks to execute.
+        Mechanism responsible for getting a task send data for
 
         :rtype: AbstractTask
         :return: user's implementation of AbstractTask object
         """
         if MOONSHEEP['DEV_ROTATE_TASKS']:
-            return self.get_random_mocked_task_data()
+            return self.get_random_mocked_task_data(task_id)
+
+        if task_id is not None:
+            task = Task.objects.get(pk=task_id)
 
         else:
-            return AbstractTask.create_task_instance(self.choose_a_task())
+            # Choose a task to serve to user
+            task = self.choose_a_task()
+
+        return AbstractTask.create_task_instance(task)
 
     __mocked_task_counter = 0
 
@@ -262,7 +261,8 @@ class TaskView(UserRequiredMixin, FormView):
 
         messages.add_message(self.request, messages.SUCCESS, _(
             'Thank you! Are you ready for a next task? Or {linkopen}take a pause?{linkclose}').format(
-                linkopen='<a class="finish-transcription" href="' + reverse('finish-transcription') + '">', linkclose='</a>'))
+            linkopen='<a class="finish-transcription" href="' + reverse('finish-transcription') + '">',
+            linkclose='</a>'))
 
     def _get_user_ip(self):
         return self.request.META.get(
@@ -270,33 +270,36 @@ class TaskView(UserRequiredMixin, FormView):
         ).split(',')[-1].strip()
 
 
-class NewTaskFormView(FormView):
-    template_name = 'views/new-task.html'
-    form_class = NewTaskForm
-
-    def get_success_url(self):
-        return reverse('ms-new-task')  # TODO namespace not needed in app, right? remove ms-
-
-    def form_valid(self, form):
-        form.cleaned_data.get('url'),
-        # TODO implement importing documents
-
-        return super(NewTaskFormView, self).form_valid(form)
-
-
-class TaskListView(TemplateView):
-    template_name = 'views/stats.html'
+class ManualVerificationView(TaskView):
+    def _get_task(self, task_id: str = None) -> AbstractTask:
+        # We know the task that we want to serve
+        return super()._get_task(self.kwargs['task_id'])
 
     def get_context_data(self, **kwargs):
-        context = super(TaskListView, self).get_context_data(**kwargs)
-        context['tasks'] = registry.TASK_TYPES
+        context = super().get_context_data(**kwargs)
+
+        # Get all entries and their confidence to support moderator's decision
+        entries: Sequence[Entry] = self.task_type.instance.entry_set.all()
+
+        # Repack them as options for each field
+        fields = {}
+        for e in entries:
+            for fld, value in e.data.items():
+                values = fields.get(fld, set())
+                values.add(value)
+                fields[fld] = values
+
+        for fld, values in fields.items():
+            fields[fld] = list(values)
+
+        context.update({
+            'entries_data': fields
+        })
+
         return context
 
 
-class ManualVerificationView(TemplateView):
-    template_name = 'views/manual-verification.html'
-
-
+# TODO separate views/admin
 class DocumentListView(TemplateView):
     template_name = 'moonsheep/documents.html'
 
@@ -334,6 +337,21 @@ class DocumentListView(TemplateView):
                 'progress_tree': nodes[None],
                 'details_doc_id': get_doc_details
             })
+
+        return context
+
+
+class CampaignView(TemplateView):
+    template_name = 'moonsheep/campaign.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        dirty_tasks = Task.objects.filter(state=Task.DIRTY).order_by('-priority')[:5]
+
+        context.update({
+            'dirty_tasks': dirty_tasks,
+        })
 
         return context
 

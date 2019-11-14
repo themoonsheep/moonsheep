@@ -34,6 +34,33 @@ Setting `MOONSHEEP['DEV_ROTATE_TASKS'] = True` has the following effects:
    If you have subtasks then most likely saving will fail because of some missing models.
    It is recommended to write project tests covering saving data and creating dependant tasks.
 
+## Settings
+
+Can be overriden in your project's settings as follows:
+```python
+from moonsheep.settings import *  # NOQA
+
+MOONSHEEP.update({
+    'DEV_ROTATE_TASKS': False,
+    'MIN_ENTRIES_TO_CROSSCHECK': 1,
+})
+```
+
+Apart from `MOONSHEEP`-specific settings, the import will also bring in defaults for `REST_FRAMEWORK`.
+
+Settings:
+- [`DEV_ROTATE_TASKS`](#DEV_ROTATE_TASKS) - support for developing tasks, check details above
+- `MIN_ENTRIES_TO_CROSSCHECK` - number of entries for a task needed to run cross-checking (defaults to 3)
+- `MIN_ENTRIES_TO_MARK_DIRTY` - number of entries for a task at the point where when if crosschecking fails 
+   then the task will be marked as `dirty`. It won't be server anymore to users and will be brought
+   for a moderator attention. (defaults to 4)
+- `USER_AUTHENTICATION` - methods to handle user logins, see [below](#Users_&_authentication) for details
+  - `nickname` - generate pseudonymous nicknames, so you can show statistics to users, 
+  but don't have to keep their peronal data
+  
+    you can set `'FAKER_LOCALE': 'it_IT'` to change the language of generated names
+  - `anonymous` - users don't need to login; cookies are sent anyhow to trace entries by each user
+
 ## Importing documents
 
 Configuring backend:

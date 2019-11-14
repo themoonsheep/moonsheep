@@ -1,13 +1,13 @@
-import json
 import random
 
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
-from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _
+
+from moonsheep.json_field import JSONField
 
 
 def generate_password(bits=160):
@@ -85,46 +85,6 @@ class User(AbstractUser):
     PSEUDONYMOUS_DOMAIN = "@pseudonymous.moonsheep.org"
 
 
-class JSONField(models.TextField):
-    """
-    JSONField is a generic textfield that neatly serializes/unserializes
-    JSON objects seamlessly.
-    Django snippet #1478, Credit: https://stackoverflow.com/a/41839021/803174
-
-    example:
-        class Page(models.Model):
-            data = JSONField(blank=True, null=True)
-
-
-        page = Page.objects.get(pk=5)
-        page.data = {'title': 'test', 'type': 3}
-        page.save()
-    """
-
-    def to_python(self, value):
-        if value == "":
-            return None
-
-        try:
-            if isinstance(value, str):
-                # TODO test datetime saving `object_hook`
-                # TODO most likely we would have to add some guessing for the types encoded by DjangoJSONEncoder
-                return json.loads(value)
-        except ValueError:
-            pass
-        return value
-
-    def from_db_value(self, value, *args):
-        return self.to_python(value)
-
-    def get_db_prep_save(self, value, *args, **kwargs):
-        if value == "":
-            return None
-        if isinstance(value, dict):
-            value = json.dumps(value, cls=DjangoJSONEncoder)
-        return value
-
-
 class Task(models.Model):
     """
     A specific Task that users will work on.
@@ -136,12 +96,13 @@ class Task(models.Model):
     type = models.CharField(verbose_name=_("Type"), max_length=255)  # , choices=[(t, t) for t in TASK_TYPES])
     """Full reference (with module) to task class name"""
 
-    params = JSONField(blank=True)
+    params = JSONField()
     """Params specifying the task, that will be passed to user"""
 
-    parent = models.ForeignKey('Task', models.CASCADE, null=True, related_name="children")
+    parent = models.ForeignKey('Task', models.CASCADE, null=True, blank=True, related_name="children")
     """Set if this task is a child of another"""
 
+    # TODO can we make it "dynamic"?
     doc_id = models.IntegerField()
     """Pointing to document_id being processed by this task"""
 

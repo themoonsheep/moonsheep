@@ -6,6 +6,7 @@ from django.db import transaction
 from django.utils.decorators import classproperty
 
 from moonsheep import statistics
+from moonsheep.json_field import JSONField
 from moonsheep.models import Task, Entry
 from moonsheep.settings import MOONSHEEP
 from .mapper import klass_from_name
@@ -17,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 # TODO rename to TaskType? add ABC class?
 class AbstractTask(object):
-    N_ANSWERS = 1
+    params: JSONField
+    instance: Task
 
     def __init__(self, instance: Task):
         self.instance = instance
@@ -94,6 +96,9 @@ class AbstractTask(object):
                 self.instance.state = Task.CROSSCHECKED
 
                 statistics.update_total_progress(self.instance)
+
+            elif entries_count >= MOONSHEEP['MIN_ENTRIES_TO_MARK_DIRTY']:
+                self.instance.state = Task.DIRTY
 
         # Entry was added so we should update progress if it's not at 100 already
         if self.instance.own_progress != 100:

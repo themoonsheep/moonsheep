@@ -24,108 +24,61 @@
 </div>
 <div class="col-md-4 relbox">
 
-        <div class="row">
-            <div class="col-md-6">
-                <button class="btn btn-block btn-transparent" type="button">Pause</button>
-            </div>
-            <div class="col-md-6">
-                <div class="dropdown">
-                    <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-main"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export <img
-                            src="{% static 'images/admin_dropdown.svg' %}" alt="chevron down, opens a dropdown menu">
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="export-main">
-                        <li><a href="#">Download XLSX</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a href="#">Download CSV</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a href="#">Download JSON</a></li>
-                        <li role="separator" class="divider"></li>
-                        <li><a href="#">Export via API</a></li>
-                    </ul>
-                </div>
-                <p class="small-text">Download all data from this campaign.</p>
-            </div>
+    <div class="row">
+        <div class="col-md-6">
+            <button class="btn btn-block btn-transparent" type="button">Pause</button>
         </div>
-        <div class="bottom-box">
-            <span>Number of same inputs verify: <input type="text" class="badge" value="2"> </span>
+        <div class="col-md-6">
+            <div class="dropdown">
+                <button class="btn btn-purple btn-block  dropdown-toggle" type="button" id="export-main"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">Export <img
+                        src="{% static 'images/admin_dropdown.svg' %}" alt="chevron down, opens a dropdown menu">
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="export-main">
+                    <li><a href="#">Download XLSX</a></li>
+                    <li role="separator" class="divider"></li>
+                    <li><a href="#">Download CSV</a></li>
+                    <li role="separator" class="divider"></li>
+                    <li><a href="#">Download JSON</a></li>
+                    <li role="separator" class="divider"></li>
+                    <li><a href="#">Export via API</a></li>
+                </ul>
+            </div>
+            <p class="small-text">Download all data from this campaign.</p>
         </div>
     </div>
+    <div class="bottom-box">
+        <span>Number of same inputs verify: <input type="text" class="badge" value="2"> </span>
+    </div>
+</div>
 {% endblock %}
 
 
 {% block content %}
 <section id="campaign" class="row">
-    <div class="col-md-12" id="volunteers">
+    <div class="col-md-12" id="dirty-tasks">
         <table class="table">
             <thead>
             <tr>
-                <th>Volunteer</th>
-                <th>Liberation Progress</th>
-                <!-- TODO #22 <th>Time Liberating</th> -->
+                <th>Dirty tasks</th>
+                <!-- TODO confidence? sort by it as well to get easier ones quickly off -->
+                <th></th>
             </tr>
             </thead>
             <tbody>
-            <!-- TODO
+            {% for t in dirty_tasks %}
             <tr>
-                <td>John McLane</td>
+                <td>{{ t }}</td>
                 <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="82"></div>
-                        <div class="progress-number"></div>
-                    </div>
+                    <a href="{% url 'ms-manual-verification' t.id %}"><button class="verify">Verify</button></a>
                 </td>
-                <td>36 min</td>
             </tr>
-            <tr>
-                <td>Marcellus Wallace</td>
-                <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="38"></div>
-                        <div class="progress-number"></div>
-                    </div>
-                </td>
-                <td>95 min</td>
-            </tr>
-
-            <tr>
-                <td>Vincent Vega</td>
-                <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="19"></div>
-                        <div class="progress-number"></div>
-                    </div>
-                </td>
-                <td>21 min</td>
-            </tr>
-
-            <tr>
-                <td>Mia Wallace</td>
-                <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="61"></div>
-                        <div class="progress-number"></div>
-                    </div>
-                </td>
-                <td>63 min</td>
-            </tr>
-
-            <tr>
-                <td>Selina Kyle</td>
-                <td>
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" data-width="52"></div>
-                        <div class="progress-number"></div>
-                    </div>
-                </td>
-                <td>48 min</td>
-            </tr>
-            -->
+            {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <div class="col-md-12" id="documents">
+    <div class="col-md-12" id="recent-verified-documents">
         <table class="table">
             <thead>
             <tr>
@@ -210,6 +163,76 @@
                         <div class="progress-number"></div>
                     </div>
                 </td>
+            </tr>
+            -->
+            </tbody>
+        </table>
+    </div>
+
+
+    <div class="col-md-12" id="volunteers">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Volunteer</th>
+                <th>Liberation Progress</th>
+                <!-- TODO #22 <th>Time Liberating</th> -->
+            </tr>
+            </thead>
+            <tbody>
+            <!-- TODO
+            <tr>
+                <td>John McLane</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="82"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+                <td>36 min</td>
+            </tr>
+            <tr>
+                <td>Marcellus Wallace</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="38"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+                <td>95 min</td>
+            </tr>
+
+            <tr>
+                <td>Vincent Vega</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="19"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+                <td>21 min</td>
+            </tr>
+
+            <tr>
+                <td>Mia Wallace</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="61"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+                <td>63 min</td>
+            </tr>
+
+            <tr>
+                <td>Selina Kyle</td>
+                <td>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar" data-width="52"></div>
+                        <div class="progress-number"></div>
+                    </div>
+                </td>
+                <td>48 min</td>
             </tr>
             -->
             </tbody>

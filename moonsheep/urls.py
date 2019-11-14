@@ -15,18 +15,14 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.urls import path
-from django.views.generic import TemplateView
 
 from moonsheep.importers.importers import ImporterView
-from .views import NewTaskFormView, TaskListView, ManualVerificationView, DocumentListView
+from .views import ManualVerificationView, DocumentListView, CampaignView
 
 urlpatterns = [
-    path('', TemplateView.as_view(template_name='moonsheep/campaign.html'), name='ms-admin'),  # TODO cleaner namespace here instead of ms-admin url name
+    path('', CampaignView.as_view(), name='ms-admin'),  # TODO cleaner namespace here instead of ms-admin url name? Or? Django docs somewhere said that's the way to prefix apps, check it!
     path('documents', DocumentListView.as_view(), name='documents'),
     path('documents/import/<slug:importer_id>', ImporterView.as_view(), name='importer'),
 
-    path('old', TemplateView.as_view(template_name = 'views/admin.html')),
-    url(r'^new-task/$', NewTaskFormView.as_view(), name='ms-new-task'),
-    url(r'^tasks/$', TaskListView.as_view(), name='ms-tasks'),
-    url(r'^manual-verification/$', ManualVerificationView.as_view(), name='ms-manual-verification'),
+    path('manual-verification/<int:task_id>', ManualVerificationView.as_view(), name='ms-manual-verification'),
 ]
