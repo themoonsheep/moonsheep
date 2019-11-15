@@ -47,4 +47,18 @@ body {
   background-color: #d24141;
 }
 
+.ms-values-tooltip {
+  background-color: black;
+  color: #fff;
+  padding: 5px;
+  border-radius: 6px;
+  text-align: center;
+  z-index: 10;
+  min-width: 100px;
+}
+.ms-values-tooltip .ms-option {
+  cursor: pointer;
+  padding: 5px 0px;
+}
+
 /*# sourceMappingURL=moonsheep_style.css.map */

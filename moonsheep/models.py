@@ -85,12 +85,31 @@ class User(AbstractUser):
     PSEUDONYMOUS_DOMAIN = "@pseudonymous.moonsheep.org"
 
 
+class TaskQuerySet(models.QuerySet):
+    def dirty(self):
+        return self.filter(state=Task.DIRTY).order_by('-priority', '-id')
+
+    def next_dirty(self, task_id) -> 'Task':
+        priority = Task.objects.values_list('priority', flat=True).get(pk=task_id)
+        task = Task.objects.raw(
+            "SELECT id FROM moonsheep_task WHERE state = 'dirty' AND (priority, id) < (%s, %s) ORDER BY priority DESC, id DESC"
+            " FETCH FIRST 1 ROWS ONLY",
+            [priority, task_id])
+
+        if len(task):
+            return task[0]
+        else:
+            return None
+
+
 class Task(models.Model):
     """
     A specific Task that users will work on.
 
     It is uniquely defined by task class/type and params
     """
+
+    objects = TaskQuerySet.as_manager()
 
     # TODO issue with circular imports; resolve it otherwise, add choices dynamically or drop it # from .registry import TASK_TYPES
     type = models.CharField(verbose_name=_("Type"), max_length=255)  # , choices=[(t, t) for t in TASK_TYPES])

@@ -51,3 +51,38 @@ body {
         background-color: #d24141;
     }
 }
+
+// Manual verification below
+.ms-values-tooltip {
+//   visibility: hidden;
+
+  background-color: black;
+  color: #fff;
+
+  padding: 5px;
+  border-radius: 6px;
+  text-align: center;
+
+  z-index: 10;
+  min-width: 100px;
+
+  .ms-option {
+    cursor: pointer;
+    padding: 5px 0px;
+  }
+}
+
+// .ms-fuzzy-input:hover .ms-values-tooltip {
+//   visibility: visible;
+// }
+//
+// .ms-values-tooltip::after {
+//     content: "";
+//     position: absolute;
+//     bottom: 100%;
+//     left: 50%;
+//     margin-left: -5px;
+//     border-width: 5px;
+//     border-style: solid;
+//     border-color: transparent transparent black transparent;
+// }

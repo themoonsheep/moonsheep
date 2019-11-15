@@ -74,6 +74,7 @@ class AbstractTask(object):
         verified = False
 
         # Do the crosscheck if we have enough entries
+        # TODO is task_id needed? we have self.instance.id
         entries = Entry.objects.filter(task_id=task_id)
         entries_count = entries.count()
 
@@ -111,6 +112,28 @@ class AbstractTask(object):
         self.instance.save()
 
         return verified
+
+    def verified_manually(self, task_id: int, entry: Entry):
+        """
+        Mark task as checked by moderator and save the data
+        :param task_id:
+        :param entry:
+        :return:
+        """
+
+        # save verified data
+        with transaction.atomic():
+            self.save_verified_data(entry.data)
+
+            # create new tasks
+            self.after_save(entry.data)
+
+        # update progress & state
+        self.instance.own_progress = 100
+        self.instance.state = Task.CLOSED_MANUALLY
+
+        statistics.update_total_progress(self.instance)
+
 
     def cross_check(self, entries: List[dict]) -> (dict, float):
         """

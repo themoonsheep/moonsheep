@@ -298,6 +298,56 @@ class ManualVerificationView(TaskView):
 
         return context
 
+    def post(self, request, *args, **kwargs):
+        action = request.POST['_action']
+
+        if action == 'cancel':
+            return HttpResponseRedirect(reverse('ms-admin'))
+
+        elif action == 'skip':
+            return HttpResponseRedirect(self.get_success_url(request.POST['_task_id']))
+
+        # action == save, proceed via super.post() to overriden _save_entry defined below
+        return super().post(request, *args, **kwargs)
+
+    def _save_entry(self, task_id, data) -> None:
+        """
+        Override default save_entry
+
+        :param task_id:
+        :param data:
+        :return:
+        """
+
+        # Create new entry
+        e = Entry(task_id=task_id, user=self.request.user, data=data, closed_manually=True)
+        # TODO this mail fail on (task,user) uniqueness if moderator also contributed to the task, add a flag that sets entry as manually checked
+        # TODO don't crosscheck entries that have been manually checked, we might accidentally overwrite data
+        e.save()
+
+        # Run verification, saving, progress updates
+        self.task_type.verified_manually(task_id, e)
+
+        messages.add_message(self.request, messages.SUCCESS, _('Thank you! We saved your entry as verified!'))
+
+    def get_success_url(self, after_task: int = None):
+        """
+        Get next dirty task if possible
+        :return:
+        """
+
+        if after_task:
+            task = Task.objects.next_dirty(after_task)
+        else:
+            task = Task.objects.dirty().only('id').first()
+
+        if task:
+            return reverse('ms-manual-verification', kwargs={'task_id': task.id})
+
+        else:
+            # TODO message no more tasks
+            return reverse('ms-admin')
+
 
 # TODO separate views/admin
 class DocumentListView(TemplateView):
@@ -347,7 +397,7 @@ class CampaignView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        dirty_tasks = Task.objects.filter(state=Task.DIRTY).order_by('-priority')[:5]
+        dirty_tasks = Task.objects.dirty()[:5]
 
         context.update({
             'dirty_tasks': dirty_tasks,
