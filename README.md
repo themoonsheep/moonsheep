@@ -1,10 +1,13 @@
 # moonsheep
 [![Build Status](https://travis-ci.org/themoonsheep/moonsheep.svg?branch=master)](https://travis-ci.org/themoonsheep/moonsheep)
 [![Coverage Status](https://coveralls.io/repos/github/themoonsheep/moonsheep/badge.svg?branch=master)](https://coveralls.io/github/themoonsheep/moonsheep?branch=master)
+[![Maintainability](https://api.codeclimate.com/v1/badges/d839eef9d3f72e817f27/maintainability)](https://codeclimate.com/github/themoonsheep/moonsheep/maintainability)
 
-Crowdsource data from PDFs
+Got stacks of documents and crowd to help out digitize them?
 
-TODO update pending
+Moonsheep digitizes massive collections of documents into structured data through crowdsourcing and cutting edge technology.
+
+See more at http://moonsheep.org/
 
 ## Run app
 ```
