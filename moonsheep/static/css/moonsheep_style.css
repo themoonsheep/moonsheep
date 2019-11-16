@@ -61,4 +61,12 @@ body {
   padding: 5px 0px;
 }
 
+.ms-field-verified {
+  outline: lime solid 3px;
+}
+
+.ms-field-fuzzy {
+  outline: orangered solid 3px;
+}
+
 /*# sourceMappingURL=moonsheep_style.css.map */

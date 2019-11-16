@@ -321,7 +321,6 @@ class ManualVerificationView(TaskView):
 
         # Create new entry
         e = Entry(task_id=task_id, user=self.request.user, data=data, closed_manually=True)
-        # TODO this mail fail on (task,user) uniqueness if moderator also contributed to the task, add a flag that sets entry as manually checked
         # TODO don't crosscheck entries that have been manually checked, we might accidentally overwrite data
         e.save()
 

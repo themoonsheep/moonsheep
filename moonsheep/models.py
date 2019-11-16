@@ -166,9 +166,12 @@ class Entry(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
     data = JSONField()
 
+    closed_manually = models.BooleanField(default=False)
+
     class Meta:
         constraints = [
             # There can be only one user's entry for given task. Django doesn't support compound keys
-            models.UniqueConstraint(fields=['task', 'user'], name='unique_task_user')
+            # Moderator can add entry twice, once with closed_manually = True
+            models.UniqueConstraint(fields=['task', 'user', 'closed_manually'], name='unique_task_user')
         ]
         verbose_name_plural = "entries"

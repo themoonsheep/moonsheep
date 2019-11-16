@@ -121,6 +121,20 @@ It uses email as an unique key and supports a range of authentication methods th
    ``` 
 - `anonymous` Users are created on the fly and automatically logged in so we know which contributions comes from who, but we don't store any identifying information. 
 
+## Manual verification
+
+There might be documents which have parts hard to decipher. In case that multiple volunteers got very different results, there is a way to bring such task for a manual verification by a moderator.
+
+To do that configure the following:
+1. In settings set up `MIN_ENTRIES_TO_MARK_DIRTY` (defaults to 4) If there are that many entries for a task and yet it has not been crossverified,
+   then the task is marked as DIRTY and sent to manual verification.
+2. In your transcription template import manual verification handing
+
+   `{% include "support_manual_verification.html" %}`
+
+Now dirty tasks will be listed in main dashboard. Opening one will show the traditional task's form with fields lighted in green (those that received same answers) 
+and fields lighted in red that didn't. Each marked red will have a hover-on tooltip containing all the answers sent by users, so you as a moderator can choose the right one or type it in yourself.
+
 ## Templates
 
 ### Widgets

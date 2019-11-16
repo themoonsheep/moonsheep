@@ -3,14 +3,14 @@ function support_manual_verification(data) {
         let input = jQuery(`input[name="${fld}"]`)
         if (values.length == 1) {
             // set chosen value
-            input.val(values[0])
-            // TODO set checkboxes properly
+            msSetValue(input, values[0]);
+
             // color it
-            input.css('outline', 'lime solid 3px') // TODO set class
+            input.addClass('ms-field-verified');
 
         } else if (values.length > 0) {
             // color it
-            input.css('outline', 'orangered solid 3px') // TODO set class
+            input.addClass('ms-field-fuzzy');
 
             // set hover with options
             let options = ``;
@@ -38,15 +38,19 @@ function support_manual_verification(data) {
         let input = option.parents('.ms-values-tooltip').siblings('input');
         let tooltip = input.data('tooltip');
 
-        if (input.attr('type') == 'checkbox') {
-            input.prop('checked', value);
-            ev.stopPropagation();
-            ev.preventDefault();
+        msSetValue(input, value);
 
-        } else {
-            input.val(value);
-        }
+        ev.stopPropagation();
+        ev.preventDefault();
         tooltip.hide();
     });
 }
 
+function msSetValue(input, value) {
+    if (input.attr('type') == 'checkbox') {
+        input.prop('checked', value);
+
+    } else {
+        input.val(value);
+    }
+}

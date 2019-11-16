@@ -54,8 +54,6 @@ body {
 
 // Manual verification below
 .ms-values-tooltip {
-//   visibility: hidden;
-
   background-color: black;
   color: #fff;
 
@@ -72,17 +70,10 @@ body {
   }
 }
 
-// .ms-fuzzy-input:hover .ms-values-tooltip {
-//   visibility: visible;
-// }
-//
-// .ms-values-tooltip::after {
-//     content: "";
-//     position: absolute;
-//     bottom: 100%;
-//     left: 50%;
-//     margin-left: -5px;
-//     border-width: 5px;
-//     border-style: solid;
-//     border-color: transparent transparent black transparent;
-// }
+.ms-field-verified {
+    outline: lime solid 3px;
+}
+
+.ms-field-fuzzy {
+    outline: orangered solid 3px;
+}
