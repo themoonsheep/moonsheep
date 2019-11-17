@@ -7,12 +7,12 @@ from django.urls import reverse
 from django.views.generic.base import TemplateView
 
 from moonsheep.models import Task
-from moonsheep.plugins import PluginError, Interface
+from moonsheep.plugins import PluginError, PCAInterface
 from moonsheep.registry import TASK_TYPES
 from moonsheep.settings import MOONSHEEP
 
 
-class IDocumentImporter(Interface):
+class IDocumentImporter(PCAInterface):
     @abstractmethod
     def find_urls(self, **options) -> Sequence[str]:
         """

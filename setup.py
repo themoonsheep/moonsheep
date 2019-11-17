@@ -1,4 +1,4 @@
-import os
+orkonimport os
 from setuptools import find_packages, setup
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
@@ -38,6 +38,8 @@ setup(
         'PyUtilib~=5.7',
         'requests~=2.22',
         'Faker~=2.0',
+        'pandas~=0.25.3',
+        'openpyxl~=3.0'
     ],
     tests_require=TEST_REQUIREMENTS,
     classifiers=[

@@ -16,18 +16,21 @@ Copy method stubs from interface and implement them.
   class HttpDocumentImporter(Plugin):
     implements(IDocumentImporter)
 """
+import inspect
+from abc import ABC
+
 from pyutilib.component.core import Interface as _pca_Interface, ExtensionPoint as PluginImplementations, \
     implements, Plugin, SingletonPlugin, PluginError
 from inspect import isclass
 
 __all__ = [
-    'PluginImplementations', 'implements', 'Interface',
-    'Plugin', 'SingletonPlugin', 'PluginError'
+    'PluginImplementations', 'implements', 'PCAInterface',
+    'Plugin', 'SingletonPlugin', 'PluginError', 'Interface'
 ]
 
 
-# TODO pack it in another file and add MIT license
-class Interface(_pca_Interface):
+# TODO rewrite usages to Interface(ABC) defined below
+class PCAInterface(_pca_Interface):
     u'''Base class for custom interfaces.
     Marker base class for extension point interfaces.  This class
     is not intended to be instantiated.  Instead, the declaration
@@ -56,3 +59,32 @@ class Interface(_pca_Interface):
     @classmethod
     def implementations(cls):
         return PluginImplementations(cls)
+
+
+def _all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in _all_subclasses(c)])
+
+
+class Interface(ABC):
+    """
+    Base class for custom interfaces.
+    """
+
+    @classmethod
+    def implementations(cls):
+        implementations = {}
+        for subclass in _all_subclasses(cls):
+            if inspect.isabstract(subclass):
+                continue
+
+            slug = subclass.__name__
+            # strip common suffix, ie. XLSXExporter -> xlsx
+            if slug.endswith(cls.__name__):
+                slug = slug[:-len(cls.__name__)]
+            slug = slug.lower()
+
+            # TODO add instantiated subclasses also here
+            implementations[slug] = subclass
+
+        return implementations
