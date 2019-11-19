@@ -15,11 +15,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         app_label = options['app_label']
+
         # TODO default label
-        # TODO test custom manager
-        # TODO excluded fields
-        # TODO document
-        # TODO finish frictionless
+        # TODO discovery and export in the admin
 
         fmt = options['format']
         output = options.get('output', None)

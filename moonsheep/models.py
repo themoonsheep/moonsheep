@@ -175,3 +175,25 @@ class Entry(models.Model):
             models.UniqueConstraint(fields=['task', 'user', 'closed_manually'], name='unique_task_user')
         ]
         verbose_name_plural = "entries"
+
+
+class DocumentQuerySet(models.QuerySet):
+    def exported(self) -> models.QuerySet:
+        return self.filter(progress=100)
+
+
+class DocumentModel(models.Model):
+    """
+    Base fields to be included in project's document model
+    """
+    class Meta:
+        abstract = True
+
+    url = models.URLField(verbose_name=_("URL"), unique=True, max_length=2048)
+    progress = models.DecimalField(decimal_places=3, max_digits=6, default=0,
+                                   validators=[validators.MaxValueValidator(100), validators.MinValueValidator(0)])
+
+    objects = DocumentQuerySet.as_manager()
+
+    class Exported:
+        exclude = ['progress']

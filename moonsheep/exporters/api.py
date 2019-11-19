@@ -3,7 +3,7 @@ import io
 from rest_framework import routers, serializers, viewsets
 from django.apps import apps
 
-from moonsheep.exporters.core import Exporter
+from moonsheep.exporters.exporters import Exporter
 
 
 class AppApi(Exporter):

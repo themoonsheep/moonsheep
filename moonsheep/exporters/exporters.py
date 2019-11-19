@@ -38,9 +38,18 @@ class Exporter(Interface):
         :return:
         """
         for slug, model_cls in apps.get_app_config(self.app_label).models.items():
+            # Customize exported fields by adding `class Exported` on the model
+            exported = getattr(model_cls, 'Exported', None)
+            exported_fields = getattr(exported, 'fields', None)
+            exported_exclude = getattr(exported, 'exclude', None)
+            if exported_fields is None and exported_exclude is None:
+                # default to having all fields exported
+                exported_fields = '__all__'
+
             class Meta:
                 model = model_cls
-                fields = '__all__'  # TODO by default drop some fields such as progress on Document
+                fields = exported_fields
+                exclude = exported_exclude
 
             serializer_cls = type(model_cls.__name__ + "SeralizerDefault", (serializers.ModelSerializer,), dict(
                 Meta=Meta
@@ -67,4 +76,4 @@ class PandasExporter(Exporter, ABC):
             serializer = serializer_cls(queryset, many=True)
             data = serializer.data
 
-            yield slug, pd.DataFrame(data)
+            yield slug, pd.DataFrame(data) # TODO return as object so it would be easier to extend?

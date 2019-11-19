@@ -175,3 +175,102 @@ After each transcription it will show "Thank you! Are you ready for a next one? 
     url(r'^$', TemplateView.as_view(template_name='homepage.html'), name='finish-transcription'),
     url(r'^$', TemplateView.as_view(template_name='homepage.html'), name='home'),
 ```
+
+## Exporting data
+
+Moonsheep supports several ways to export structured domain data. That include:
+- JSON:API compliant API
+- XLSX
+- [Frictionless Data](https://frictionlessdata.io/) (packed CSVs)  
+
+Export options are available in the Moonsheep admin on the campaign page and also via command line on the server.
+
+### Configuration
+
+Structured data export is available out of the box, but can be further refined.
+
+#### Exported queryset
+
+It is possible to define what objects should be returned for each model 
+by defining a custom queryset method `exported()`. 
+
+`DocumentModel` base class uses that mechanism to return by default only those objects
+that have been fully transcribed. You can define it on any of your domain models
+and it will be picked up by the export mechanism.
+
+```python
+class DocumentQuerySet(models.QuerySet):
+    def exported(self) -> models.QuerySet:
+        return self.filter(progress=100)
+
+class DocumentModel(models.Model):
+    objects = DocumentQuerySet.as_manager()
+```  
+
+#### Excluded fields
+
+You might have some metadata/control fields that you don't want to be exported
+in structured data. To define them add an inner class `Exported`
+and define there either a full list of fields to export or fields to be excluded.
+
+```python
+class MyModel(models.Model):
+    class Exported:
+        # fields = ['first', 'second'] # to list all fields which should appear
+        exclude = ['progress'] # or exclude a few
+        # if Exported is not specified then by default all fields are exported
+```
+
+#### DocumentModel
+
+`moonsheep.models.DocumentModel` should be used as a default base class 
+for defining a model that defines a document being transcribed. It offers following features:
+- defines `url` and `progress` model fields required by Moonsheep
+- exclude `progress` field from being exported
+- limits exported objects to those fully transcribed `progress == 100` 
+
+### Exporters
+
+#### API
+
+Implementing an API for domain model is as simple as adding one url line:
+```python
+from moonsheep.exporters.api import AppApi
+
+urlpatterns = [
+    path('api/opora/', AppApi('opora').urls, name='api-opora'),
+]
+```
+
+`AppApi` scans for all domain models defined in your app (passed in the param) 
+and generates URL for each using Django Rest Framework. 
+Rest Framework gives you a nice html interface to play with requests with 
+discovery features (listing of all endpoints). That's the effect at `/api/opora`: 
+
+![API Home Screen](docs/images/api-generated.png)
+
+#### XLXS
+
+Exports data placing each model in a separate sheet of `xlsx` file.
+
+Can be called from a command line:
+```bash
+python manage.py moonsheep_export [app_label] xlsx -o opora.xlsx
+```
+
+#### Frictionless Data (packed CSV)
+
+Exports data placing each model in a separate `csv` file
+and packing all of them into a zip file according to Frictionless Data specification.
+
+Can be called from a command line:
+```bash
+python manage.py moonsheep_export [app_label] frictionless -o opora.zip
+```
+
+#### Guidelines on how to write your own exporter
+
+Exporters should extend `moonsheep.exporters.Exporter` abstract class and implement
+`def export(self, output: Union[io.IOBase, str], **options)` method.
+
+`PandasExporter` can be used as a base as `pandas` supports already [several output types](http://pandas-docs.github.io/pandas-docs-travis/reference/frame.html#serialization-io-conversion).

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from moonsheep.exporters.core import PandasExporter
+from moonsheep.exporters.exporters import PandasExporter
 
 
 class XLSXExporter(PandasExporter):
