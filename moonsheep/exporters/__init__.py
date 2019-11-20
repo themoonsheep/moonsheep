@@ -1,3 +1,3 @@
-from .exporters import Exporter
-from .frictionless_data import FrictionlessExporter
-from .xlsx import XLSXExporter
+from .exporters import Exporter, FileExporter
+from .frictionless_data import FrictionlessFileExporter
+from .xlsx import XLSXFileExporter

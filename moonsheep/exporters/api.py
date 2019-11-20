@@ -7,8 +7,14 @@ from moonsheep.exporters.exporters import Exporter
 
 
 class AppApi(Exporter):
+    """
+    AppApi generates an API for a given project
+
+    AppApi should be registered on project's urls as follows `path('api/opora/', include(AppApi('opora').urls)),`")
+    """
     def __init__(self, app_label):
         super().__init__(app_label)
+
         self.router = routers.DefaultRouter()
 
         # Iterate through all defined models in the app and create endpoints for them
@@ -30,7 +36,3 @@ class AppApi(Exporter):
         :return:
         """
         return self.router.urls, 'api-' + self.app_label
-
-    def export(self, writer: io.BufferedWriter, **options):
-        raise NotImplementedError(
-            "Api exporter should be registered on urls as follows `path('api/opora/', include(AppApi('opora').urls)),`")

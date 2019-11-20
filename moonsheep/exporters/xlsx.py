@@ -3,7 +3,7 @@ import pandas as pd
 from moonsheep.exporters.exporters import PandasExporter
 
 
-class XLSXExporter(PandasExporter):
+class XLSXFileExporter(PandasExporter):
     def export(self, output, **options):
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             for slug, data_frame in self.data_frames():

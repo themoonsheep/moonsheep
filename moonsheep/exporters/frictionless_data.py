@@ -7,13 +7,15 @@ from datetime import datetime
 from moonsheep.exporters.exporters import PandasExporter
 
 
-class FrictionlessExporter(PandasExporter):
+class FrictionlessFileExporter(PandasExporter):
     """
     Frictionless Data exporter
 
     Frictionless Data (https://frictionlessdata.io/) is basically a folder containing csv data files
     along with some metadata about them. Such folder can be packed in one file (.zip, .tar.gz, etc.)
     """
+
+    label = "Frictionless"
 
     @staticmethod
     def type_from_pandas(type):
@@ -74,7 +76,7 @@ class FrictionlessExporter(PandasExporter):
                 "schema": {
                     "fields": [{
                         "name": fld,
-                        "type": FrictionlessExporter.type_from_pandas(ftype)
+                        "type": FrictionlessFileExporter.type_from_pandas(ftype)
                         # TODO while creating dataframe ask model for specific field type
                         #  (now we have string expressed as object)
                         # TODO description from model

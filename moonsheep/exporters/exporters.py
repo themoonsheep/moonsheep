@@ -10,20 +10,8 @@ from moonsheep.plugins import Interface
 
 
 class Exporter(Interface):
-    @abstractmethod
-    def export(self, output: Union[io.IOBase, str], **options):
-        pass
-
-    @classmethod
-    def implementations(cls):
-        impls = super().implementations()
-        del impls['appapi']
-        return impls
-
     def __init__(self, app_label):
         self.app_label = app_label
-        # TODO default label
-        # TODO what if label does not exist
 
     def models(self):
         """
@@ -64,7 +52,13 @@ class Exporter(Interface):
             yield slug, model_cls, serializer_cls, queryset.order_by('pk')
 
 
-class PandasExporter(Exporter, ABC):
+class FileExporter(Exporter, ABC):
+    @abstractmethod
+    def export(self, output: Union[io.IOBase, str], **options):
+        pass
+
+
+class PandasExporter(FileExporter, ABC):
     """
     Base class to write exporters building on Pandas library
 
@@ -76,4 +70,4 @@ class PandasExporter(Exporter, ABC):
             serializer = serializer_cls(queryset, many=True)
             data = serializer.data
 
-            yield slug, pd.DataFrame(data) # TODO return as object so it would be easier to extend?
+            yield slug, pd.DataFrame(data)  # TODO return as object so it would be easier to extend?

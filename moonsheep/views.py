@@ -17,6 +17,7 @@ from django.views import View
 from django.views.generic import FormView, TemplateView
 
 from moonsheep.exporters import Exporter
+from moonsheep.exporters.exporters import FileExporter
 from moonsheep.importers.importers import IDocumentImporter
 from moonsheep.mapper import klass_from_name
 from moonsheep.users import UserRequiredMixin, generate_nickname
@@ -409,7 +410,7 @@ class CampaignView(TemplateView):
                 [{
                     'url': reverse('ms-export', args=[slug]),
                     'label': 'Download ' + (getattr(cls, 'label', None) or slug.upper())
-                } for slug, cls in Exporter.implementations().items()]
+                } for slug, cls in FileExporter.implementations().items()]
                 # plus API
                 + [{
                     'url': reverse(f'api-{MOONSHEEP["APP"]}:api-root'),
@@ -422,12 +423,12 @@ class CampaignView(TemplateView):
 
 class ExporterView(View):
     def get(self, request, *args, **kwargs):
-        exporter_cls = Exporter.implementations().get(kwargs['slug'], None)
+        exporter_cls = FileExporter.implementations().get(kwargs['slug'], None)
         if exporter_cls is None:
             raise Http404(f"Exporter {kwargs['slug']} does not exist")
 
         app_label = MOONSHEEP["APP"]
-        exp: Exporter = exporter_cls(app_label)
+        exp: FileExporter = exporter_cls(app_label)
         # TODO frictionless supporting writing to existing writer/opened file
         temp_dir = tempfile.mkdtemp()
         # TODO exporters should have the option to generate a default file name

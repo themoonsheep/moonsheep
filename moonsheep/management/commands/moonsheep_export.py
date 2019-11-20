@@ -2,7 +2,7 @@ import sys
 
 from django.core.management.base import BaseCommand
 
-from moonsheep.exporters import *
+from moonsheep.exporters.exporters import FileExporter
 
 
 class Command(BaseCommand):
@@ -21,8 +21,8 @@ class Command(BaseCommand):
         if output is None:
             output = sys.stdout
 
-        exporter_cls = Exporter.implementations().get(fmt, None)
-        if exporter_cls is None or fmt == 'appapi':
+        exporter_cls = FileExporter.implementations().get(fmt, None)
+        if exporter_cls is None:
             raise NotImplementedError(f"There is no '{fmt}' exporter defined")
 
         exporter_cls(app_label).export(output)
