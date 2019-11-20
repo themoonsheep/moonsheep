@@ -46,6 +46,7 @@ class FrictionlessExporter(PandasExporter):
             "profile": "tabular-data-package",
             "resources": []
         }
+        # TODO support output as stream
 
         compression_cmd = None
         if output.endswith('.zip'):

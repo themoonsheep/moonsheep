@@ -1,25 +1,28 @@
+import os
 import random
 import re
+import tempfile
 from typing import Sequence
 
 import dpath.util
 from django.contrib import messages
 from django.contrib.auth import login
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404, FileResponse
 from django.http.request import QueryDict
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.views import View
 from django.views.generic import FormView, TemplateView
 
+from moonsheep.exporters import Exporter
 from moonsheep.importers.importers import IDocumentImporter
 from moonsheep.mapper import klass_from_name
 from moonsheep.users import UserRequiredMixin, generate_nickname
 from . import registry
 from .exceptions import (
     PresenterNotDefined, NoTasksLeft, TaskMustSetTemplate)
-from .forms import NewTaskForm
 from .models import Task, Entry, User
 from .settings import MOONSHEEP
 from .tasks import AbstractTask
@@ -400,9 +403,41 @@ class CampaignView(TemplateView):
 
         context.update({
             'dirty_tasks': dirty_tasks,
+
+            'exporters':
+            # all exporting files
+                [{
+                    'url': reverse('ms-export', args=[slug]),
+                    'label': 'Download ' + (getattr(cls, 'label', None) or slug.upper())
+                } for slug, cls in Exporter.implementations().items()]
+                # plus API
+                + [{
+                    'url': reverse(f'api-{MOONSHEEP["APP"]}:api-root'),
+                    'label': 'Open API'
+                }]
         })
 
         return context
+
+
+class ExporterView(View):
+    def get(self, request, *args, **kwargs):
+        exporter_cls = Exporter.implementations().get(kwargs['slug'], None)
+        if exporter_cls is None:
+            raise Http404(f"Exporter {kwargs['slug']} does not exist")
+
+        app_label = MOONSHEEP["APP"]
+        exp: Exporter = exporter_cls(app_label)
+        # TODO frictionless supporting writing to existing writer/opened file
+        temp_dir = tempfile.mkdtemp()
+        # TODO exporters should have the option to generate a default file name
+        temp_file = os.path.join(temp_dir, app_label + ('.xlsx' if kwargs['slug'] == 'xlsx' else '.tar.gz'))
+        # TODO frictionless checks file extension. it should operate by default as "save to one file packed"
+        # or we should create an option for that
+        # Decide how exporters should behave
+        exp.export(temp_file)
+
+        return FileResponse(open(temp_file, 'rb'), as_attachment=True)
 
 
 class ChooseNicknameView(TemplateView):

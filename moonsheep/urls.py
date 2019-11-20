@@ -17,12 +17,16 @@ from django.conf.urls import url
 from django.urls import path
 
 from moonsheep.importers.importers import ImporterView
-from .views import ManualVerificationView, DocumentListView, CampaignView
+from .views import ManualVerificationView, DocumentListView, CampaignView, ExporterView
 
+# TODO app_name = 'moonsheep'
 urlpatterns = [
-    path('', CampaignView.as_view(), name='ms-admin'),  # TODO cleaner namespace here instead of ms-admin url name? Or? Django docs somewhere said that's the way to prefix apps, check it!
+    path('', CampaignView.as_view(), name='ms-admin'),
+    # TODO cleaner namespace here instead of ms-admin url name? Or? Django docs somewhere said that's the way to prefix apps, check it!
     path('documents', DocumentListView.as_view(), name='documents'),
     path('documents/import/<slug:importer_id>', ImporterView.as_view(), name='importer'),
+
+    path('export/<slug:slug>', ExporterView.as_view(), name='ms-export'),
 
     path('manual-verification/<int:task_id>', ManualVerificationView.as_view(), name='ms-manual-verification'),
 ]

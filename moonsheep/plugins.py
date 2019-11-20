@@ -18,6 +18,7 @@ Copy method stubs from interface and implement them.
 """
 import inspect
 from abc import ABC
+from typing import Dict, Type
 
 from pyutilib.component.core import Interface as _pca_Interface, ExtensionPoint as PluginImplementations, \
     implements, Plugin, SingletonPlugin, PluginError
@@ -72,7 +73,7 @@ class Interface(ABC):
     """
 
     @classmethod
-    def implementations(cls):
+    def implementations(cls) -> Dict[str, Type['Interface']]:
         implementations = {}
         for subclass in _all_subclasses(cls):
             if inspect.isabstract(subclass):

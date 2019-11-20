@@ -35,13 +35,10 @@
                         src="{% static 'images/admin_dropdown.svg' %}" alt="chevron down, opens a dropdown menu">
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="export-main">
-                    <li><a href="#">Download XLSX</a></li>
+                    {% for e in exporters %}
+                    <li><a href="{{ e.url }}">{{ e.label }}</a></li>
                     <li role="separator" class="divider"></li>
-                    <li><a href="#">Download CSV</a></li>
-                    <li role="separator" class="divider"></li>
-                    <!--<li><a href="#">Download JSON</a></li>-->
-                    <li role="separator" class="divider"></li>
-                    <li><a href="#">Export via API</a></li>
+                    {% endfor %}
                 </ul>
             </div>
             <p class="small-text">Download all data from this campaign.</p>

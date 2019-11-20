@@ -12,6 +12,7 @@ MOONSHEEP = {
     'MIN_ENTRIES_TO_MARK_DIRTY': 4,
     'FAKER_LOCALE': 'it_IT',  # See supported locales at https://github.com/joke2k/faker#localization
     'USER_AUTHENTICATION': 'nickname'  # available settings: 'nickname', 'anonymous', TODO email #60
+    # 'APP': 'myapp'  # needs to be set in project
 }
 
 AUTH_USER_MODEL = 'moonsheep.User'
