@@ -68,7 +68,10 @@ def stats_documents_verified():
 
     table_name = MOONSHEEP['DOCUMENT_MODEL'].objects.model._meta.db_table
 
-    with connections['default'].connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+    conn = connections['default']
+    conn.ensure_connection()
+
+    with conn.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
         cursor.execute(f"""SELECT 
             COUNT(CASE WHEN progress = 100 THEN 1 END) AS "verified", 
             COUNT("id") AS "total", 
@@ -95,7 +98,10 @@ def stats_users():
     """
     # TODO cache it
 
-    with connections['default'].connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+    conn = connections['default']
+    conn.ensure_connection()
+
+    with conn.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
         cursor.execute("""
 select
 	count(id) as registered,
