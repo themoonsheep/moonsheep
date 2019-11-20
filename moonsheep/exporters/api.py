@@ -25,12 +25,12 @@ class AppApi(Exporter):
     def urls(self):
         """
         Register AppApi on urls as follow using your app_label:
-        path('api/opora/', AppApi('opora').urls, name='api-opora'),
+        path('api/opora/', include(AppApi('opora').urls)),
 
         :return:
         """
-        return self.router.urls, 'app-api', 'api-' + self.app_label
+        return self.router.urls, 'api-' + self.app_label
 
     def export(self, writer: io.BufferedWriter, **options):
-        raise NotImplementedError("Api exporter should be registered on urls as follows `path('api/opora/', "
-                                  "AppApi('opora').urls, name='api-opora')`")
+        raise NotImplementedError(
+            "Api exporter should be registered on urls as follows `path('api/opora/', include(AppApi('opora').urls)),`")

@@ -238,7 +238,7 @@ Implementing an API for domain model is as simple as adding one url line:
 from moonsheep.exporters.api import AppApi
 
 urlpatterns = [
-    path('api/opora/', AppApi('opora').urls, name='api-opora'),
+    path('api/opora/', include(AppApi('opora').urls)),
 ]
 ```
 
