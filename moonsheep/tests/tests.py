@@ -11,11 +11,11 @@ from unittest import TestCase as UnitTestCase
 from unittest.mock import MagicMock, patch, sentinel, call
 
 from moonsheep.exceptions import PresenterNotDefined, TaskMustSetTemplate, NoTasksLeft
-from moonsheep.forms import NewTaskForm, MultipleRangeField
+from moonsheep.forms import MultipleRangeField
 from moonsheep.mapper import ModelMapper
 from moonsheep.tasks import AbstractTask
 from moonsheep.verifiers import equals, OrderedListVerifier
-from moonsheep.views import unpack_post, TaskView, NewTaskFormView
+from moonsheep.views import unpack_post, TaskView
 
 
 # TODO dev env: `DJANGO_SETTINGS_MODULE=moonsheep.tests.migrations_settings django-admin makemigrations` should return that everything is up to date
@@ -84,9 +84,6 @@ from moonsheep.views import unpack_post, TaskView, NewTaskFormView
 
 # TODO test error handling for Tasks with no form and no template
 
-# views.py
-PYBOSSA_PROJECT_ID = 1
-
 
 def setup_view(view, request, *args, **kwargs):
     """
@@ -112,10 +109,8 @@ class TaskViewTest(DjangoTestCase):
                 'task_form': 'myapp.forms.TaskForm'
             }
         }
-        self.pybossa_project_id = 1
         self.task_id = 1
         self.post_data = {
-            '_project_id': self.pybossa_project_id,
             '_task_id': self.task_id
         }
 
@@ -302,9 +297,6 @@ class TaskViewTest(DjangoTestCase):
         context = view.get_context_data()
         self.assertIsInstance(context['task'], AbstractTask)
         self.assertEqual(context['task'], view.task)
-        self.assertEqual(context['project_id'], PYBOSSA_PROJECT_ID)
-        from moonsheep.settings import PYBOSSA_BASE_URL
-        self.assertEqual(context['pybossa_url'], PYBOSSA_BASE_URL)
 
     @patch('moonsheep.views.TaskView._get_task')
     @patch('moonsheep.views.TaskView.initialize_task_data')
@@ -337,9 +329,6 @@ class TaskViewTest(DjangoTestCase):
         self.assertTrue(context['error'])
         self.assertEqual(context['message'], 'Sample error message')
         self.assertEqual(context['template'], 'Sample error template')
-        self.assertEqual(context['project_id'], PYBOSSA_PROJECT_ID)
-        from moonsheep.settings import PYBOSSA_BASE_URL
-        self.assertEqual(context['pybossa_url'], PYBOSSA_BASE_URL)
 
     @patch('moonsheep.models.klass_from_name')
     def test_initialize_task_data(
@@ -408,7 +397,6 @@ class TaskViewTest(DjangoTestCase):
     # # TODO: FIXME
     # @patch('pbclient.get_task')
     # @patch('moonsheep.tasks.AbstractTask.create_task_instance')
-    # @override_settings(TASK_SOURCE=PYBOSSA_SOURCE)
     # def test_get_task_old_not_development(
     #         self,
     #         create_task_instance_mock: MagicMock,
@@ -441,8 +429,6 @@ class TaskViewTest(DjangoTestCase):
 
     # TODO: FIXME
     # @patch('moonsheep.views.TaskView.get_random_pybossa_task')
-    # @override_settings(TASK_SOURCE=PYBOSSA_SOURCE)
-    # @patch('moonsheep.settings.TASK_SOURCE', PYBOSSA_SOURCE)
     # def test_get_new_task_random_pybossa_task(self, get_random_pybossa_task_mock: MagicMock):
     #     from moonsheep.views import TaskView
     #     request = self.factory.get(self.fake_path)
@@ -467,7 +453,6 @@ class TaskViewTest(DjangoTestCase):
     # TODO: test tasks rotation
     def test_get_random_mocked_task_data(self):
         request = self.factory.get(self.fake_path)
-        base_task.register(AbstractTask)
         view = TaskView()
         view = setup_view(view, request)
         task = view.get_random_mocked_task_data()
@@ -479,7 +464,6 @@ class TaskViewTest(DjangoTestCase):
             },
             'id': 'moonsheep.tasks.AbstractTask'
         })
-        base_task.clear()
 
     def test_get_random_mocked_task_data_no_registry(self):
         request = self.factory.get(self.fake_path)
@@ -509,81 +493,6 @@ class TaskViewTest(DjangoTestCase):
     #         view.get_random_pybossa_task()
 
     def test_send_task(self):
-        pass
-
-
-@override_settings(ROOT_URLCONF='moonsheep.urls')
-class NewTaskFormViewTest(DjangoTestCase):
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.client = Client()
-        self.path = reverse('ms-new-task')
-        self.pybossa_project_id = 1
-        self.task_id = 1
-
-    def test_get_success_url(self):
-        request = self.factory.get(self.path)
-        view = NewTaskFormView()
-        view.request = request
-        success_url = view.get_success_url()
-        self.assertEquals(success_url, self.path)
-
-    @patch('pbclient.set')
-    @patch('pbclient.create_task')
-    def test_form_valid_no_registry(
-            self,
-            create_task_mock: MagicMock,
-            set_mock: MagicMock
-    ):
-        request = self.factory.get(self.path)
-        view = NewTaskFormView()
-        view.request = request
-        form_data = {
-            'url': 'http://byleco.pl'
-        }
-        form = NewTaskForm(form_data)
-        form.full_clean()
-        with self.assertRaises(ImproperlyConfigured):
-            view.form_valid(form)
-
-    @patch('pbclient.set')
-    @patch('pbclient.create_task')
-    def test_form_valid(
-            self,
-            create_task_mock: MagicMock,
-            set_mock: MagicMock
-    ):
-        request = self.factory.get(self.path)
-        initial_task.register(AbstractTask)
-        view = NewTaskFormView()
-        view.request = request
-        form_data = {
-            'url': 'http://byleco.pl'
-        }
-        form = NewTaskForm(form_data)
-        form.full_clean()
-        success_url = view.form_valid(form).url
-        self.assertEquals(success_url, self.path)
-        initial_task.clear()
-        # set_mock.assert_has_calls([call('endpoint', settings.PY)])
-        # create_task_mock.assert_any_call({
-        #     'project_id': PYBOSSA_PROJECT_ID,
-        #     'info': {
-        #         'type':
-        #     }
-        # })
-
-    # def test_form_valid_no_base_tasks(self):
-
-
-class WebhookTaskRunViewTest(UnitTestCase):
-    def test_dispatch(self):
-        pass
-
-    def test_get(self):
-        pass
-
-    def test_post(self):
         pass
 
 

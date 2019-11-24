@@ -4,10 +4,6 @@ from django import forms
 from django.core.validators import RegexValidator, ValidationError
 
 
-class NewTaskForm(forms.Form):
-    url = forms.URLField(label="Report URL")
-
-
 class MultipleRangeField(forms.CharField):
     default_validators = [RegexValidator(regex="[\w\d]+[\w]?(-[\w\d]+[\w]?)?(,[\w\d]+[\w]?(-[\w\d]+[\w]?)?)*")]
 

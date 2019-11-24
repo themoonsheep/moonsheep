@@ -24,7 +24,7 @@ class AbstractTask(object):
     def __init__(self, instance: Task):
         self.instance = instance
         self.id = instance.id  # TODO attr rather than field
-        self.params = instance.params
+        self.params = instance.params  # TODO attr rather than field
 
         # per-instance overrides
         if 'task_form' in self.params:

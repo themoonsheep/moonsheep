@@ -114,7 +114,7 @@ It uses email as an unique key and supports a range of authentication methods th
    ```python
    from moonsheep.views import ChooseNicknameView
 
-   urlpatterns = [an url
+   urlpatterns = [
      # name needs to be set to 'choose-nickname'
      path('get-a-nickname', ChooseNicknameView.as_view(template_name='nickname.html'), name='choose-nickname'),
    ]

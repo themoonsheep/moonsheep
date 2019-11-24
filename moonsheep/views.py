@@ -30,7 +30,8 @@ from .tasks import AbstractTask
 
 
 class TaskView(UserRequiredMixin, FormView):
-    task_type = None
+    task_type: AbstractTask = None
+    template_name: str = None
     form_class = None
     error_message = None
     error_template = None
@@ -49,16 +50,16 @@ class TaskView(UserRequiredMixin, FormView):
         try:
             self.task_type = self._get_task()
             self.configure_template_and_form()
-        except NoTasksLeft:
+        except NoTasksLeft:  # TODO test case for project
             self.error_message = 'Task Chooser returned no tasks'
             self.error_template = 'error-messages/no-tasks.html'
             self.task_type = None
-            self.template_name = 'views/message.html'
+            self.template_name = 'error-messages/no-tasks.html'  # TODO we do not want to define the main err template in Moonsheep. How to generally handle messages and errors?
         except PresenterNotDefined:
             self.error_message = 'Presenter not defined'
             self.error_template = 'error-messages/presenter-not-defined.html'
             self.task_type = None
-            self.template_name = 'views/message.html'
+            self.template_name = 'error-messages/presenter-not-defined.html'  # TODO we do not want to main err template it in Moonsheep. How to generally handle messages and errors?
 
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
