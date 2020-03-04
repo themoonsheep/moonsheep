@@ -1,4 +1,5 @@
 import json
+from random import randint
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
@@ -19,8 +20,8 @@ from moonsheep.views import unpack_post, TaskView
 
 class DummyAbstracTask(AbstractTask):
     def __init__(self, info):
+        self.id = randint(0, 100)
         self.params = info
-
 
 
 # TODO dev env: `DJANGO_SETTINGS_MODULE=moonsheep.tests.migrations_settings django-admin makemigrations` should return that everything is up to date
