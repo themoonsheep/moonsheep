@@ -1,19 +1,13 @@
 language: python
 matrix:
   include:
-    - python: 3.5
-      env: TOXENV=py35-18
-    - python: 3.5
-      env: TOXENV=py35-19
-    - python: 3.5
-      env: TOXENV=py35-110
-    - python: 3.5
-      env: TOXENV=py35-111
-    - python: 3.5
-      env: TOXENV=py35-20
     - python: 3.6
       env: TOXENV=py36-111
     - python: 3.6
+      env: TOXENV=py36-20
+    - python: 3.7
+      env: TOXENV=py36-111
+    - python: 3.7
       env: TOXENV=py36-20
 # command to install dependencies
 install:
