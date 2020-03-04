@@ -6,9 +6,9 @@ matrix:
     - python: 3.6
       env: TOXENV=py36-20
     - python: 3.7
-      env: TOXENV=py36-111
+      env: TOXENV=py37-111
     - python: 3.7
-      env: TOXENV=py36-20
+      env: TOXENV=py37-20
 # command to install dependencies
 install:
   - pip install tox
