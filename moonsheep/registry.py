@@ -2,10 +2,9 @@
 
 from contextlib import contextmanager
 
-from moonsheep.mapper import klass_from_name
-from moonsheep.tasks import AbstractTask
-from .settings import MOONSHEEP
 import django.db.models
+
+from .settings import MOONSHEEP
 
 
 def register(task_class):

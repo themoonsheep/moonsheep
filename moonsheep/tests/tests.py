@@ -1,5 +1,4 @@
 import json
-# from requests.exceptions import ConnectionError
 
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
