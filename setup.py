@@ -30,7 +30,7 @@ setup(
     test_suite='runtests.runtests',
     license='AGPL-3.0',
     install_requires=[
-        'Django>=1.11',
+        'Django>=2.2',
         'dpath~=1.4',
         'djangorestframework~=3.10',
         'djangorestframework-jsonapi~=2.8',
