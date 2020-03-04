@@ -40,7 +40,7 @@ setup(
         'Faker~=2.0',
         'pandas~=0.25.3',
         'openpyxl~=3.0',
-        'psycopg2~=2.8.44',
+        'psycopg2~=2.8.4',
         'psycopg2-binary~=0.4.5',
     ],
     tests_require=TEST_REQUIREMENTS,
