@@ -3,6 +3,7 @@ from decimal import Decimal
 import psycopg2
 from django.db import connections
 from django.db.models import F, Avg, Count
+from django.db.models.functions import Coalesce
 
 from moonsheep import models
 from moonsheep.models import Task
@@ -31,7 +32,7 @@ def update_total_progress(task: models.Task):
         else:
             # own_progress == 100, so there might be subtasks
             subtasks = Task.objects.filter(parent=task) \
-                .aggregate(average_progress=Avg('total_progress'), count=Count('id'))
+                .aggregate(average_progress=Coalesce(Avg('total_progress'), 0), count=Count('id'))
 
             task.total_progress = Decimal(
                 subtasks['average_progress'] * subtasks['count'] + 100) / (
