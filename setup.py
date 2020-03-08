@@ -30,7 +30,7 @@ setup(
     test_suite='runtests.runtests',
     license='AGPL-3.0',
     install_requires=[
-        'Django>=1.11',
+        'Django>=2.2',
         'dpath~=1.4',
         'djangorestframework~=3.10',
         'djangorestframework-jsonapi~=2.8',
@@ -39,7 +39,8 @@ setup(
         'requests~=2.22',
         'Faker~=2.0',
         'pandas~=0.25.3',
-        'openpyxl~=3.0'
+        'openpyxl~=3.0',
+        'psycopg2~=2.8.4'
     ],
     tests_require=TEST_REQUIREMENTS,
     classifiers=[

@@ -3,6 +3,8 @@ import decimal
 import uuid
 from unittest import TestCase
 
+from django.db import connection
+
 from moonsheep.models import JSONField
 
 
@@ -11,7 +13,7 @@ class JSONFieldTest(TestCase):
     f = JSONField()
 
     def assertStores(self, value):
-        json = self.f.get_db_prep_save({'value': value})
+        json = self.f.get_db_prep_save({'value': value}, connection)
         value_after = self.f.from_db_value(json)['value']
 
         self.assertEqual(value, value_after)

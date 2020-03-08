@@ -1,25 +1,28 @@
 language: python
+
+services: postgresql
+
+before_script:
+  - psql -c "CREATE DATABASE travisci;" -U postgres
+
 matrix:
   include:
-    - python: 3.5
-      env: TOXENV=py35-18
-    - python: 3.5
-      env: TOXENV=py35-19
-    - python: 3.5
-      env: TOXENV=py35-110
-    - python: 3.5
-      env: TOXENV=py35-111
-    - python: 3.5
-      env: TOXENV=py35-20
     - python: 3.6
-      env: TOXENV=py36-111
+      env: TOXENV=py36-22
     - python: 3.6
-      env: TOXENV=py36-20
+      env: TOXENV=py36-30
+    - python: 3.7
+      env: TOXENV=py37-22
+    - python: 3.7
+      env: TOXENV=py37-30
+
 # command to install dependencies
 install:
   - pip install tox
+
 # command to run tests
 script:
   - tox -e $TOXENV
+
 # containers
 sudo: false
